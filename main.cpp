@@ -21,6 +21,9 @@ FILE *pFile;
 instruction_bundle i_b;
 
 instruction_bundle *DE;
+instruction_bundle *RN;
+
+execution_list *exc_lst;
 
 ROB_table rob;
 RMT_block rmt[67];
@@ -70,6 +73,7 @@ int main(int argc, char *argv[])
   
   IQ.ISSUE_queue_c(IQ_size);
 
+  exc_lst = new execution_list[5*width];
 
  //while(fscanf(pFile,"%s %d %d %d %d",&pc_str,&opcode,&dr,&sr1,&sr2))
   while(1)
@@ -124,7 +128,7 @@ void Decode()//maybe send bundle pointer to decode from fetch
       RN = DE;
       DE = NULL;
     }
-
+  }
 
 
 }
@@ -137,29 +141,29 @@ void Rename()
     {
       for(int i=0;i<width;i++)
       {
-        rob.rob_entry[tail].pc = RN.instr_bundle[i].pc;
-        rob.rob_entry[tail].dst = RN.instr_bundle[i].dr;
+        rob.rob_entry[tail].pc = RN->instr_bundle[i].pc;
+        rob.rob_entry[tail].dst = RN->instr_bundle[i].dr;
         rob.rob_entry[tail].rdy = 0;
         rob.rob_entry[tail].exc = 0;
         rob.rob_entry[tail].mis = 0;
 
         
         //rename source tags.
-        if(rmt[RN.instr_bundle[i].sr1].valid == 1) //ROB entry exits
+        if(rmt[RN->instr_bundle[i].sr1].valid == 1) //ROB entry exits
         {
-          RN.instr_bundle[i].sr1 = rmt[ RN.instr_bundle[i].sr1 ].tag;
-          RN.instr_bundle[i].sr1_rob_or_arf = 1;
+          RN->instr_bundle[i].sr1 = rmt[ RN->instr_bundle[i].sr1 ].tag;
+          RN->instr_bundle[i].sr1_rob_or_arf = 1;
         }
 
-        if(rmt[RN.instr_bundle[i].sr2].valid == 1) //ROB entry exits
+        if(rmt[RN->instr_bundle[i].sr2].valid == 1) //ROB entry exits
         {
-          RN.instr_bundle[i].sr2 = rmt[ RN.instr_bundle[i].sr2 ].tag;
-          RN.instr_bundle[i].sr2_rob_or_arf = 1;
+          RN->instr_bundle[i].sr2 = rmt[ RN->instr_bundle[i].sr2 ].tag;
+          RN->instr_bundle[i].sr2_rob_or_arf = 1;
         }
 
         // Enter the rob value in RMT for destination
-        rmt[ RN.instr_bundle[i].dr ].tag = tail;
-        rmt[ RN.instr_bundle[i].dr ].valid = 1;
+        rmt[ RN->instr_bundle[i].dr ].tag = tail;
+        rmt[ RN->instr_bundle[i].dr ].valid = 1;
         rob.incr_tail();
       }
 
@@ -180,12 +184,15 @@ void Dispatch()
   {
     if(IQ.is_IQ_free()) // 1 if there is place
     {
-      int free_entry //TODO write a funcion to return an empty place in issue queue
-      IQ.IQ_entry[free_entry].valid = 1;
-      IQ.IQ_entry[free_entry].dst_tag = DI.instr_bundle[i].dr;
-      if(DI.instr_bundle[i].sr1_rob_or_arf == 0) IQ.IQ_entry[free_entry].rdy_rs1 = 1; //ARF
-      if(DI.instr_bundle[i].sr2_rob_or_arf == 0) IQ.IQ_entry[free_entry].rdy_rs2 = 1; //ARF
-      IQ.IQ_entry[free_entry].age = DI.instr_bundle
+      for(int i=0;i<width;i++)
+      {
+        int free_entry //TODO write a funcion to return an empty place in issue queue
+        IQ.IQ_entry[free_entry].valid = 1;
+        //IQ.IQ_entry[free_entry].dst_tag = DI.instr_bundle[i].dr;
+        if(DI->instr_bundle[i].sr1_rob_or_arf == 0) IQ.IQ_entry[free_entry].rdy_rs1 = 1; //ARF
+        if(DI->instr_bundle[i].sr2_rob_or_arf == 0) IQ.IQ_entry[free_entry].rdy_rs2 = 1; //ARF
+        IQ.IQ_entry.instr = &DI.instr_bundle[i];
+      }
       DI = NULL;
     }
 
@@ -194,12 +201,46 @@ void Dispatch()
 
 void Issue()
 {
+  //find 4 oldest instructions from issue queue
 
+  //remove instructon from IQ
+  exc_lst[].instr =  IQ.IQ_entry[].instr;
+  if(IQ.IQ_entry[].instr->opcode == 0) exc_lst[].cycle_to_complete = 1;
+  if(IQ.IQ_entry[].instr->opcode == 1) exc_lst[].cycle_to_complete = 2;
+  if(IQ.IQ_entry[].instr->opcode == 2) exc_lst[].cycle_to_complete = 5;
 
 }
 
 void Execute()
 {
+  for(int i=0;i<5*width;i++)
+  {
+    if((exc_lst[i].valid == 1)&&(exc_lst[i].cycle_to_complete == 1)) //instructions that are finishing this cycle
+    {
+      int dr = exc_lst[i].instr->dr; //this is the destination that will complete this cycle.
+      for(int i=0; i<IQ.size; i++)
+      {
+        if((IQ.IQ_entry[i].instr->sr1 == dr)&&(dr != -1))
+        {
+          IQ.IQ_entry[i].rdy_sr1 = 1;
+        }
+        if((IQ.IQ_entry[i].instr->sr2 == dr)&&(dr != -1))
+        {
+          IQ.IQ_entry[i].rdy_sr2 = 1;
+        }
+      }
+      //wake up instructions in DI and RR also
+      
+
+    }
+  }
+  for(int i = 0;i<5*width;i++)
+  {
+    if (exc_lst[i].valid == 1)
+    {
+      exc_lst[i].cycle_to_complete--;
+    }
+  }
 
 }
 

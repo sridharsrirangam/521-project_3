@@ -42,19 +42,20 @@ class RMT_block{
 class issue_queue_entry{
   public:
     int valid;
-    int dst_tag;
+    //int dst_tag;
     int rdy_rs1;
     int rdy_rs2;
-    int tag_rs1;
-    int tag_rs2;
+    //int tag_rs1;
+    //int tag_rs2;
+    instruction *instr;
 
     issue_queue_entry(){
       valid = 0;
-      dst_tag = 0;
+      //dst_tag = 0;
       rdy_rs1 = 0;
       rdy_rs2 = 0;
-      tag_rs1 = 0;
-      tag_rs2 = 0;
+     // tag_rs1 = 0;
+     // tag_rs2 = 0;
     }
 };
 
@@ -109,7 +110,13 @@ class ROB_table {
 
 };
 
+class execution_list {
+  public:
+    int valid;
+    int cycle_to_complete;
+    instruction *instr;
 
+};
 
 
 

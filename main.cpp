@@ -7,9 +7,26 @@
 
 #include <math.h>
 
-//#include "class_definitions.cpp"
+#include "class_definitions.h"
 
 using namespace std;
+
+int fetch_age_cycle=0;
+
+unsigned int ROB_size;
+unsigned int IQ_size;
+unsigned int width;
+FILE *pFile;
+  
+instruction_bundle i_b;
+
+instruction_bundle *DE;
+
+ROB_table rob;
+RMT_block rmt[67];
+ISSUE_queue IQ;
+
+int DE_empty, RN_empty;
 
 int main(int argc, char *argv[])
 {
@@ -20,17 +37,14 @@ int main(int argc, char *argv[])
   int dr;  //destination register
   int sr1, sr2; //source register 1 and 2. using int because value can be -1 i.e no reg
 
-  unsigned int ROB_size;
-  unsigned int IQ_size;
-  unsigned int width;
   int total_reads = 0;
+  void Fetch();
 
   if(argc != 5 ) //TODO
   {
     cout<<"invalid number of arguments"<<endl;
   }
 
-  FILE *pFile;
   char *fname = (char *)malloc(30);
   
   ROB_size = atoi(argv[1]);
@@ -48,17 +62,155 @@ int main(int argc, char *argv[])
     cout<<"Trace file problem"<<endl;
     exit(0);
   }
-  while(fscanf(pFile,"%s %d %d %d %d",&pc_str,&opcode,&dr,&sr1,&sr2))
+  
+  i_b.instruction_bundle_c(width);
+
+  rob.ROB_table_c(ROB_size);
+ 
+  
+  IQ.ISSUE_queue_c(IQ_size);
+
+
+ //while(fscanf(pFile,"%s %d %d %d %d",&pc_str,&opcode,&dr,&sr1,&sr2))
+  while(1)
   {
     if(feof(pFile))break;
     total_reads++;
     pc = strtoul(pc_str,0,16);
-    cout<<hex<<pc<<" "<<dec<<opcode<<" "<<dr<<" "<<sr1<<" "<<sr2<<endl;
-
+   // cout<<hex<<pc<<" "<<dec<<opcode<<" "<<dr<<" "<<sr1<<" "<<sr2<<endl;
+    Fetch();
 
 
   }
   cout<<"total reads: "<<dec<<total_reads<<endl;
+
+}//end of main
+
+void Fetch()
+{
+  unsigned long pc;
+  int opcode;
+  int dr;
+  int sr1,sr2;
+  char pc_str[10];
+
+  //if((DE_not_empty)&&(! feof(pFile))) //set to 1 if DE is not empty
+  if(! feof(pFile)) //set to 1 if DE is not empty
+  {
+   for(int i=0;i<width;i++)
+   {
+    fscanf(pFile,"%s %d %d %d %d",&pc_str,&opcode,&dr,&sr1,&sr2);
+    if(feof(pFile)) break;
+    i_b.instr_bundle[i].pc = strtoul(pc_str,0,16);
+    i_b.instr_bundle[i].opcode = opcode;
+    i_b.instr_bundle[i].dr = dr;
+    i_b.instr_bundle[i].sr1 = sr1;
+    i_b.instr_bundle[i].sr2 = sr2;
+    i_b.instr_bundle[i].age = fetch_age_cycle;
+    fetch_age_cycle++;
+    cout<<" instruction "<<i<<" "<<hex<<i_b.instr_bundle[i].pc<<dec<<" "<<opcode<<" "<<dr<<" "<<sr1<<" "<<sr2<<endl;
+    DE = &i_b;
+   }
+    
+  }
+}//end of fetch
+ 
+void Decode()//maybe send bundle pointer to decode from fetch
+{
+  if(DE != NULL)
+  {
+    if(!RN_empty) // 0 means empty
+    {
+      RN = DE;
+      DE = NULL;
+    }
+
+
+
 }
 
-  
+void Rename()
+{
+  if(RN != NULL)
+  {
+    if((!RR_empty)&&(is_ROB_free()))
+    {
+      for(int i=0;i<width;i++)
+      {
+        rob.rob_entry[tail].pc = RN.instr_bundle[i].pc;
+        rob.rob_entry[tail].dst = RN.instr_bundle[i].dr;
+        rob.rob_entry[tail].rdy = 0;
+        rob.rob_entry[tail].exc = 0;
+        rob.rob_entry[tail].mis = 0;
+
+        
+        //rename source tags.
+        if(rmt[RN.instr_bundle[i].sr1].valid == 1) //ROB entry exits
+        {
+          RN.instr_bundle[i].sr1 = rmt[ RN.instr_bundle[i].sr1 ].tag;
+          RN.instr_bundle[i].sr1_rob_or_arf = 1;
+        }
+
+        if(rmt[RN.instr_bundle[i].sr2].valid == 1) //ROB entry exits
+        {
+          RN.instr_bundle[i].sr2 = rmt[ RN.instr_bundle[i].sr2 ].tag;
+          RN.instr_bundle[i].sr2_rob_or_arf = 1;
+        }
+
+        // Enter the rob value in RMT for destination
+        rmt[ RN.instr_bundle[i].dr ].tag = tail;
+        rmt[ RN.instr_bundle[i].dr ].valid = 1;
+        rob.incr_tail();
+      }
+
+    }
+  }
+
+}
+
+void RegRead()
+{
+
+
+}
+
+void Dispatch()
+{
+  if(DI != NULL)
+  {
+    if(IQ.is_IQ_free()) // 1 if there is place
+    {
+      int free_entry //TODO write a funcion to return an empty place in issue queue
+      IQ.IQ_entry[free_entry].valid = 1;
+      IQ.IQ_entry[free_entry].dst_tag = DI.instr_bundle[i].dr;
+      if(DI.instr_bundle[i].sr1_rob_or_arf == 0) IQ.IQ_entry[free_entry].rdy_rs1 = 1; //ARF
+      if(DI.instr_bundle[i].sr2_rob_or_arf == 0) IQ.IQ_entry[free_entry].rdy_rs2 = 1; //ARF
+      IQ.IQ_entry[free_entry].age = DI.instr_bundle
+      DI = NULL;
+    }
+
+  }
+}
+
+void Issue()
+{
+
+
+}
+
+void Execute()
+{
+
+}
+
+void Writeback()
+{
+
+}
+
+void Retire()
+{
+
+}
+
+    

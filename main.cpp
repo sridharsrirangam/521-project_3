@@ -7,29 +7,34 @@
 
 #include <math.h>
 
-#include "class_definitions.h"
 
 using namespace std;
 
 int fetch_age_cycle=0;
+int cycle_count = 0;
 
 unsigned int ROB_size;
 unsigned int IQ_size;
 unsigned int width;
 FILE *pFile;
-  
-instruction_bundle i_b;
 
-instruction_bundle *DE;
-instruction_bundle *RN;
+#include "class_definitions.h"
+  
+instruction *i_b;
+
+instruction *DE;
+instruction *RN;
+instruction *RR;
+instruction *DI;
 
 execution_list *exc_lst;
-
+Writeback_list *WB;
 ROB_table rob;
 RMT_block rmt[67];
 ISSUE_queue IQ;
 
-int DE_empty, RN_empty;
+bool DE_empty, RN_empty,RR_empty;
+
 
 int main(int argc, char *argv[])
 {
@@ -41,8 +46,12 @@ int main(int argc, char *argv[])
   int sr1, sr2; //source register 1 and 2. using int because value can be -1 i.e no reg
 
   int total_reads = 0;
+  bool Advance_cycle();
   void Fetch();
-
+  void Decode();
+  void Rename();
+  void RegRead();
+  void Dispatch();
   if(argc != 5 ) //TODO
   {
     cout<<"invalid number of arguments"<<endl;
@@ -66,7 +75,7 @@ int main(int argc, char *argv[])
     exit(0);
   }
   
-  i_b.instruction_bundle_c(width);
+  //i_b.instruction_bundle_c(width);
 
   rob.ROB_table_c(ROB_size);
  
@@ -74,21 +83,37 @@ int main(int argc, char *argv[])
   IQ.ISSUE_queue_c(IQ_size);
 
   exc_lst = new execution_list[5*width];
-
+  WB = new Writeback_list[5*width];
  //while(fscanf(pFile,"%s %d %d %d %d",&pc_str,&opcode,&dr,&sr1,&sr2))
-  while(1)
+  while(Advance_cycle())
   {
     if(feof(pFile))break;
     total_reads++;
     pc = strtoul(pc_str,0,16);
    // cout<<hex<<pc<<" "<<dec<<opcode<<" "<<dr<<" "<<sr1<<" "<<sr2<<endl;
+    Dispatch();
+    RegRead();
+    Rename();
+    Decode();
     Fetch();
 
-
   }
+  for(int i=0;i<67;i++) cout<<"rmt["<<i<<"] = "<<rmt[i].valid<<" "<<rmt[i].tag<<endl;
+  for(int i=0;i<IQ_size;i++) cout<<"IQ["<<i<<"] = "<<IQ.IQ_entry[i].valid<<" "<<hex<<IQ.IQ_entry[i].instr->pc<<" "<<"age "<<IQ.IQ_entry[i].instr->age<<endl;
   cout<<"total reads: "<<dec<<total_reads<<endl;
 
 }//end of main
+
+bool Advance_cycle()
+{
+  cout<<"CYCLE COUNT: "<<cycle_count<<endl;
+  if(feof(pFile)) //& pipeline_empty
+      return false;
+  cycle_count++;
+  return true;
+ }
+
+
 
 void Fetch()
 {
@@ -101,19 +126,26 @@ void Fetch()
   //if((DE_not_empty)&&(! feof(pFile))) //set to 1 if DE is not empty
   if(! feof(pFile)) //set to 1 if DE is not empty
   {
+    i_b = new instruction[width];
+    //i_b.instruction_bundle_c(width);
    for(int i=0;i<width;i++)
    {
     fscanf(pFile,"%s %d %d %d %d",&pc_str,&opcode,&dr,&sr1,&sr2);
     if(feof(pFile)) break;
-    i_b.instr_bundle[i].pc = strtoul(pc_str,0,16);
-    i_b.instr_bundle[i].opcode = opcode;
-    i_b.instr_bundle[i].dr = dr;
-    i_b.instr_bundle[i].sr1 = sr1;
-    i_b.instr_bundle[i].sr2 = sr2;
-    i_b.instr_bundle[i].age = fetch_age_cycle;
+    i_b[i].pc = strtoul(pc_str,0,16);
+    i_b[i].opcode = opcode;
+    i_b[i].dr = dr;
+    i_b[i].sr1 = sr1;
+    i_b[i].sr2 = sr2;
+    i_b[i].sr1_org = sr1;
+    i_b[i].sr2_org = sr2;
+    i_b[i].age = fetch_age_cycle;
+    i_b[i].rdy_rs1 = 0;
+    i_b[i].rdy_rs2 = 0;
     fetch_age_cycle++;
-    cout<<" instruction "<<i<<" "<<hex<<i_b.instr_bundle[i].pc<<dec<<" "<<opcode<<" "<<dr<<" "<<sr1<<" "<<sr2<<endl;
-    DE = &i_b;
+    cout<<" instruction "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<i_b[i].opcode<<" "<<i_b[i].dr<<" "<<i_b[i].sr1_org<<" "<<i_b[i].sr2_org<<" age "<<i_b[i].age<<endl;
+    DE = i_b;
+   // cout<<DE<<endl;
    }
     
   }
@@ -123,8 +155,10 @@ void Decode()//maybe send bundle pointer to decode from fetch
 {
   if(DE != NULL)
   {
+    cout<<"Decode check 1"<<endl;
     if(!RN_empty) // 0 means empty
     {
+      cout<<"Decode check 2"<<endl;
       RN = DE;
       DE = NULL;
     }
@@ -135,47 +169,70 @@ void Decode()//maybe send bundle pointer to decode from fetch
 
 void Rename()
 {
+  cout<<"Rename check 1"<<endl;
   if(RN != NULL)
   {
-    if((!RR_empty)&&(is_ROB_free()))
+    cout<<"Rename check 2"<<endl;
+    //if((!RR_empty)&&(rob.is_ROB_free()))
+    if(rob.is_ROB_free())
     {
+      cout<<"Rename check 3"<<endl;
       for(int i=0;i<width;i++)
       {
-        rob.rob_entry[tail].pc = RN->instr_bundle[i].pc;
-        rob.rob_entry[tail].dst = RN->instr_bundle[i].dr;
-        rob.rob_entry[tail].rdy = 0;
-        rob.rob_entry[tail].exc = 0;
-        rob.rob_entry[tail].mis = 0;
+        rob.rob_entry[rob.tail].pc = RN[i].pc;
+        rob.rob_entry[rob.tail].dst = RN[i].dr;
+        rob.rob_entry[rob.tail].rdy = 0;
+        rob.rob_entry[rob.tail].exc = 0;
+        rob.rob_entry[rob.tail].mis = 0;
 
         
         //rename source tags.
-        if(rmt[RN->instr_bundle[i].sr1].valid == 1) //ROB entry exits
+        if((RN[i].sr1 != -1)&&(rmt[RN[i].sr1].valid == 1)) //register is valid and ROB entry exits
         {
-          RN->instr_bundle[i].sr1 = rmt[ RN->instr_bundle[i].sr1 ].tag;
-          RN->instr_bundle[i].sr1_rob_or_arf = 1;
+          cout<<"sr 1 renamed"<<endl;
+          RN[i].sr1 = rmt[ RN[i].sr1 ].tag;
+          RN[i].sr1_rob_or_arf = 1;
         }
 
-        if(rmt[RN->instr_bundle[i].sr2].valid == 1) //ROB entry exits
+        if((RN[i].sr2 != -1)&&(rmt[RN[i].sr2].valid == 1)) //register is valid and ROB entry exits
         {
-          RN->instr_bundle[i].sr2 = rmt[ RN->instr_bundle[i].sr2 ].tag;
-          RN->instr_bundle[i].sr2_rob_or_arf = 1;
+          cout<<"sr 2 renamed"<<endl;
+          RN[i].sr2 = rmt[ RN[i].sr2 ].tag;
+          RN[i].sr2_rob_or_arf = 1;
         }
 
         // Enter the rob value in RMT for destination
-        rmt[ RN->instr_bundle[i].dr ].tag = tail;
-        rmt[ RN->instr_bundle[i].dr ].valid = 1;
-        rob.incr_tail();
+        if(RN[i].dr != -1)
+        {
+          rmt[ RN[i].dr ].tag = rob.tail;
+          rmt[ RN[i].dr ].valid = 1;
+          rob.incr_tail();
+        }
+        cout<<" rename "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<RN[i].opcode<<" "<<RN[i].dr<<" "<<RN[i].sr1<<" "<<RN[i].sr2<<" age "<<RN[i].age<<endl;
       }
 
     }
+    RR = RN;
+    RN = NULL;
   }
 
 }
 
 void RegRead()
-{
+{ 
+    if(RR != NULL)
+    {
+      cout<<"RR check"<<endl;
+      for(int i=0; i<width; i++)
+      {
+        if(RR[i].sr1_rob_or_arf == 0) { RR[i].rdy_rs1 = 1; cout<<"sr1 set to ready"<<endl; }
+        if(RR[i].sr2_rob_or_arf == 0) { RR[i].rdy_rs2 = 1; cout<<"sr2 set to ready"<<endl; }
+      }
 
-
+    }
+    DI = RR;
+    RR = NULL;
+  
 }
 
 void Dispatch()
@@ -186,19 +243,24 @@ void Dispatch()
     {
       for(int i=0;i<width;i++)
       {
-        int free_entry //TODO write a funcion to return an empty place in issue queue
+        int free_entry = IQ.free_entry(); //TODO write a funcion to return an empty place in issue queue
+        cout<<"free entry "<<free_entry<<endl;
+        if(free_entry != -1){
+        cout<<"DI check"<<endl;
         IQ.IQ_entry[free_entry].valid = 1;
         //IQ.IQ_entry[free_entry].dst_tag = DI.instr_bundle[i].dr;
-        if(DI->instr_bundle[i].sr1_rob_or_arf == 0) IQ.IQ_entry[free_entry].rdy_rs1 = 1; //ARF
-        if(DI->instr_bundle[i].sr2_rob_or_arf == 0) IQ.IQ_entry[free_entry].rdy_rs2 = 1; //ARF
-        IQ.IQ_entry.instr = &DI.instr_bundle[i];
+      //  if(DI[i].sr1_rob_or_arf == 0) IQ.IQ_entry[free_entry].rdy_rs1 = 1; //ARF
+      //  if(DI->instr_bundle[i].sr2_rob_or_arf == 0) IQ.IQ_entry[free_entry].rdy_rs2 = 1; //ARF
+        IQ.IQ_entry[free_entry].instr = &DI[i];
+        IQ.incr_tail();
+        }
       }
       DI = NULL;
     }
 
   }
 }
-
+/*
 void Issue()
 {
   //find 4 oldest instructions from issue queue
@@ -230,7 +292,13 @@ void Execute()
         }
       }
       //wake up instructions in DI and RR also
-      
+     
+
+      //Put the instruction in WB
+      WB[].valid = 1;
+      WB[].instr = exc_lst[i].instr;
+      exc_lst[i].valid = 0;
+
 
     }
   }
@@ -241,6 +309,9 @@ void Execute()
       exc_lst[i].cycle_to_complete--;
     }
   }
+
+  
+
 
 }
 
@@ -254,4 +325,4 @@ void Retire()
 
 }
 
-    
+*/  

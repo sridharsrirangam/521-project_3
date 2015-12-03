@@ -14,6 +14,27 @@ class instruction{
     int sr1_rob_or_arf, sr2_rob_or_arf;  //if 1, tag is ROb, else ARF
     int age;
     int rdy_rs1, rdy_rs2;
+    int rob_tag;
+    
+    //variables to log entry and exit times
+    int fetch_entry;
+    int fetch_exit;
+    int decode_entry;
+    int decode_exit;
+    int rename_entry;
+    int rename_exit;
+    int regread_entry;
+    int regread_exit;
+    int dispatch_entry;
+    int dispatch_exit;
+    int issue_entry;
+    int issue_exit;
+    int execute_entry;
+    int execute_exit;
+    int writeback_entry;
+    int writeback_exit;
+    int retire_entry;
+    int retire_exit;
 
 };
 
@@ -99,6 +120,14 @@ class ISSUE_queue{
       return (-1);
 
     }
+    bool is_IQ_empty()
+    {
+      for(int i=0;i<size; i++)
+      {
+        if(IQ_entry[i].valid == 1) return 1;
+      }
+      return 0;
+    }
 };
 
 
@@ -110,6 +139,7 @@ class ROB_entry{
     int exc;
     int mis;
     int pc;
+    instruction *instr;
 };
 
 class ROB_table {
@@ -142,6 +172,11 @@ class ROB_table {
       if(tail<size) tail++;
       else if (tail == size) tail = 0;
     }
+    void incr_head()
+    {
+      if(head<size) head++;
+      else if (head == size) head = 0;
+    }
 
 };
 
@@ -150,13 +185,22 @@ class execution_list {
     int valid;
     int cycle_to_complete;
     instruction *instr;
-
+    execution_list()
+    {
+      valid = 0;
+    }
+    bool isValid() { return valid;}
 };
 
 class  Writeback_list{
   public:
     int valid;
     instruction *instr;
+    Writeback_list()
+    {
+      valid = 0;
+    }
+    bool isValid() { return valid;}
 };
 
 

@@ -94,18 +94,18 @@ class ISSUE_queue{
       tail = 0;
       IQ_entry = new issue_queue_entry[size];
     }
-    bool is_IQ_free()
-    {
-      //check if there are four free entries in IQ and respond 1 if free
-      int space;
-      //implement full or empty calculations using head nad tail
-      if(head > tail) space = head - tail - 1;
-      if(tail > head) space = size - tail + head ;//TODO change in ROB also
-      cout<<"IQ stats "<<space<<" "<<head<<" "<<tail<<endl; 
-      if(space>width) return 1;
-      if((head == 0)&&(tail == 0)) return 1; //maybe not correct
-      else if(space<width) return 0;
-    }
+    //bool is_IQ_free()
+    //{
+    //  //check if there are four free entries in IQ and respond 1 if free
+    //  int space;
+    //  //implement full or empty calculations using head nad tail
+    //  if(head > tail) space = head - tail - 1;
+    //  if(tail > head) space = size - tail + head ;//TODO change in ROB also
+    //  cout<<"IQ stats "<<space<<" "<<head<<" "<<tail<<endl; 
+    //  if(space>width) return 1;
+    //  if((head == 0)&&(tail == 0)) return 1; //maybe not correct
+    //  else if(space<width) return 0;
+    //}
     void incr_tail()
     {
       if(tail<size) tail++;
@@ -120,13 +120,15 @@ class ISSUE_queue{
       return (-1);
 
     }
-    bool is_IQ_empty()
+    int is_IQ_empty()
     {
+      int count = 0;
       for(int i=0;i<size; i++)
       {
-        if(IQ_entry[i].valid == 1) return 1;
+        if(IQ_entry[i].valid == 0) count++;
       }
-      return 0;
+      cout<<"issue count "<<count<<endl;
+      return count;
     }
 };
 

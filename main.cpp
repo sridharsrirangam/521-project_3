@@ -16,6 +16,7 @@ int cycle_count = 0;
 int go_exec = 0; //set by issue, indicates exc can go ahead
 int go_WB = 0; //set by execute
 int go_RT = 1;
+bool go_issue = 0;
 
 unsigned int ROB_size;
 unsigned int IQ_size;
@@ -157,10 +158,10 @@ void Fetch()
     i_b[i].rdy_rs1 = 0;
     i_b[i].rdy_rs2 = 0;
     fetch_age_cycle++;
-    cout<<" instruction "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<i_b[i].opcode<<" "<<i_b[i].dr<<" "<<i_b[i].sr1_org<<" "<<i_b[i].sr2_org<<" age "<<i_b[i].age<<endl;
+    //cout<<" instruction "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<i_b[i].opcode<<" "<<i_b[i].dr<<" "<<i_b[i].sr1_org<<" "<<i_b[i].sr2_org<<" age "<<i_b[i].age<<endl;
     DE = i_b;
     i_b[i].fetch_entry = cycle_count;
-    cout<<"instruction: "<<i_b[i].age<<" fetch entry: "<<i_b[i].fetch_entry<<endl;
+    //cout<<"instruction: "<<i_b[i].age<<" fetch entry: "<<i_b[i].fetch_entry<<endl;
    // cout<<DE<<endl;
    }
     
@@ -209,14 +210,14 @@ void Rename()
         //rename source tags.
         if((RN[i].sr1 != -1)&&(rmt[RN[i].sr1].valid == 1)) //register is valid and ROB entry exits
         {
-          cout<<"sr 1 renamed"<<endl;
+          //cout<<"sr 1 renamed"<<endl;
           RN[i].sr1 = rmt[ RN[i].sr1 ].tag;
           RN[i].sr1_rob_or_arf = 1;
         }
 
         if((RN[i].sr2 != -1)&&(rmt[RN[i].sr2].valid == 1)) //register is valid and ROB entry exits
         {
-          cout<<"sr 2 renamed"<<endl;
+          //cout<<"sr 2 renamed"<<endl;
           RN[i].sr2 = rmt[ RN[i].sr2 ].tag;
           RN[i].sr2_rob_or_arf = 1;
         }
@@ -229,7 +230,7 @@ void Rename()
           rmt[ RN[i].dr ].valid = 1;
           rob.incr_tail();
         }
-        cout<<" rename "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<RN[i].opcode<<" "<<RN[i].dr<<" "<<RN[i].sr1<<" "<<RN[i].sr2<<" age "<<RN[i].age<<endl;
+        //cout<<" rename "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<RN[i].opcode<<" "<<RN[i].dr<<" "<<RN[i].sr1<<" "<<RN[i].sr2<<" age "<<RN[i].age<<endl;
       }
 
     RR = RN;
@@ -251,8 +252,8 @@ void RegRead()
       cout<<"RR check"<<endl;
       for(int i=0; i<width; i++)
       {
-        if(RR[i].sr1_rob_or_arf == 0) { RR[i].rdy_rs1 = 1; cout<<"sr1 set to ready"<<endl; }
-        if(RR[i].sr2_rob_or_arf == 0) { RR[i].rdy_rs2 = 1; cout<<"sr2 set to ready"<<endl; }
+        if(RR[i].sr1_rob_or_arf == 0) { RR[i].rdy_rs1 = 1;} //cout<<"sr1 set to ready"<<endl; }
+        if(RR[i].sr2_rob_or_arf == 0) { RR[i].rdy_rs2 = 1; }//cout<<"sr2 set to ready"<<endl; }
       }
       DI = RR;
       RR = NULL;
@@ -266,13 +267,14 @@ void Dispatch()
 {
   if(DI != NULL)
   {
-    if(IQ.is_IQ_free()) // 1 if there is place
+    if(IQ.is_IQ_empty() >= width) // 1 if there is place
     {
+      cout<<"Dispatch check"<<endl;
       DI_empty = 0;
       for(int i=0;i<width;i++)
       {
         int free_entry = IQ.free_entry(); //TODO write a funcion to return an empty place in issue queue
-        cout<<"free entry "<<free_entry<<endl;
+        //cout<<"free entry "<<free_entry<<endl;
         if(free_entry != -1){
         cout<<"DI check"<<endl;
         IQ.IQ_entry[free_entry].valid = 1;
@@ -280,13 +282,17 @@ void Dispatch()
       //  if(DI[i].sr1_rob_or_arf == 0) IQ.IQ_entry[free_entry].rdy_rs1 = 1; //ARF
       //  if(DI->instr_bundle[i].sr2_rob_or_arf == 0) IQ.IQ_entry[free_entry].rdy_rs2 = 1; //ARF
         IQ.IQ_entry[free_entry].instr = &DI[i];
-        IQ.incr_tail();
+        //IQ.incr_tail();
         }
       }
       DI = NULL;
+      go_issue = 1;
     }
-
-    else DI_empty = 1;
+    else 
+    {
+      DI_empty = 1;
+      cout<<"DI empty set"<<endl;
+    }
   }
     //else DI_empty = 1;
 }
@@ -294,7 +300,8 @@ void Dispatch()
 void Issue()
 {
   //find 4 oldest instructions from issue queue
-  if(IQ.is_IQ_empty())
+  //if(IQ.is_IQ_empty())
+  if(go_issue)
   {
     int min = 11000;
     int min_last = -1;
@@ -317,35 +324,41 @@ void Issue()
               { 
                 min = IQ.IQ_entry[j].instr->age; 
                 index[i] = j;
-                cout<<"in min"<<min<<" "<<index[i]<<endl;
+                //cout<<"in min"<<min<<" "<<index[i]<<endl;
                }
              }
           }
         }
       }
         min_last = min;
-        cout<<"min last:"<<min_last<<endl;
+        //cout<<"min last:"<<min_last<<endl;
                // count++;
                // cout<<"count: "<<count<<endl;
     }
+      for(int a=0;a<IQ_size;a++) 
+          {
+            if(IQ.IQ_entry[a].instr != NULL) cout<<"issue queue "<<a<<" "<<hex<<IQ.IQ_entry[a].instr->pc<<dec 
+              <<" "<<IQ.IQ_entry[a].instr->rdy_rs1<<" "<<IQ.IQ_entry[a].instr->rdy_rs2<<endl;
+          }
       for(int z=0;z<width;z++) 
       { cout<<"index:"<<index[z]<<endl;
         if(index[z] >=0) { count++; cout<<"count:"<<count<<endl;}
       }
       //unless 4 instructions are ready, we dont send them to execute.verify this in forums and implement
-       if(count == width)
+       if(count == width) //this is count for seeing if issue has 4 ready instrs
        {
          for(int i=0;i<width;i++)
          {
             IQ.IQ_entry[index[i]].valid = 0;
-            cout<<"Issue min "<<min<<" "<<index<<endl;
+            //cout<<"Issue min "<<min<<" "<<index<<endl;
             ///to get a free netry in execute list
              int free_entry;
              for(int k=0; k< 5*width; k++)
              {
                if(exc_lst[k].valid == 0) { free_entry = k; break; }
              }
-             exc_lst[free_entry].instr =  IQ.IQ_entry[i].instr;
+             exc_lst[free_entry].instr =  IQ.IQ_entry[index[i]].instr;
+             cout<<hex<<exc_lst[free_entry].instr->pc<<dec<<endl;
              exc_lst[free_entry].valid = 1;
              if(IQ.IQ_entry[i].instr->opcode == 0) exc_lst[free_entry].cycle_to_complete = 1;
              if(IQ.IQ_entry[i].instr->opcode == 1) exc_lst[free_entry].cycle_to_complete = 2;
@@ -363,15 +376,16 @@ void Execute()
  {
   for(int i=0;i<5*width;i++)
   {
-    cout<<" EXECUTE check"<<endl;
+    //cout<<" EXECUTE check"<<endl;
     if((exc_lst[i].valid == 1)&&(exc_lst[i].cycle_to_complete == 1)) //instructions that are finishing this cycle
     {
       cout<<" EXECUTE check 1"<<endl;
       int dr = exc_lst[i].instr->dr; //this is the destination that will complete this cycle.
+      cout<<"Exc "<<hex<<exc_lst[i].instr->pc<<dec<<endl;
       for(int k=0; k<IQ.size; k++)
       {
-          if(IQ.IQ_entry[k].instr != NULL)
-          {
+        if(IQ.IQ_entry[k].instr != NULL)
+        {
           if((IQ.IQ_entry[k].instr->sr1 == dr)&&(dr != -1))
           {
             IQ.IQ_entry[k].instr->rdy_rs1 = 1;
@@ -383,15 +397,30 @@ void Execute()
         }
       }
       //wake up instructions in DI and RR also
-     
+      if(DI != NULL)
+      {
+        for(int k=0;k<width;k++)
+        {
+          if(DI[k].sr1 == dr) DI[k].rdy_rs1 = 1;
+          if(DI[k].sr2 == dr) DI[k].rdy_rs1 = 2;
+        }
+      }
+      if(RR != NULL)
+      {
+        for(int k=0;k<width;k++)
+        {
+          if(RR[k].sr1 == dr) RR[k].rdy_rs1 = 1;
+          if(RR[k].sr2 == dr) RR[k].rdy_rs1 = 2;
+        }
+      }
 
       //Put the instruction in WB
-      cout<<" EXECUTE check 2"<<endl;
       int free_entry;
       for(int k=0;k< 5*width;k++)
       {
         if(WB[k].valid == 0) { free_entry = k; break; }
       }
+      cout<<"WB free entry" <<free_entry<<endl;
       WB[free_entry].valid = 1;
       WB[free_entry].instr = exc_lst[i].instr;
       exc_lst[i].valid = 0;
@@ -399,14 +428,16 @@ void Execute()
 
     }
   }
-  go_exec = 0;
+  //go_exec = 0;
   go_WB = 1;
  }
+  cout<<" EXECUTE check 2"<<endl;
   for(int i = 0;i<5*width;i++)
   {
     if (exc_lst[i].valid == 1)
     {
       exc_lst[i].cycle_to_complete--;
+     cout << "c2c: " << exc_lst[i].cycle_to_complete<<" "<<hex<<exc_lst[i].instr->pc <<dec<< " " << endl;
     }
   }
 
@@ -437,7 +468,7 @@ void Retire()
 {
   for(int i=0;i<width;i++)
   {
-    for(int k=rob.head;k<ROB_size;k++)
+    for(int k=rob.head;k<width;k++)
     {
      if(rob.rob_entry[k].rdy == 1)
      {

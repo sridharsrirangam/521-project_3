@@ -11,6 +11,7 @@ class instruction{
     int dr;
     int sr1,sr2;
     int sr1_org,sr2_org;
+    int dr_org;
     int sr1_rob_or_arf, sr2_rob_or_arf;  //if 1, tag is ROb, else ARF
     int age;
     int rdy_rs1, rdy_rs2;
@@ -35,6 +36,12 @@ class instruction{
     int writeback_exit;
     int retire_entry;
     int retire_exit;
+
+    instruction()
+    {
+      rdy_rs1 = 0;
+      rdy_rs2 = 0;
+    }
 
 };
 

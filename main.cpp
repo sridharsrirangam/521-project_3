@@ -128,6 +128,13 @@ bool Advance_cycle()
   return true;
  }
 
+void print_instr(instruction *instr)
+{
+  if(instr != NULL)
+  cout<<" PC: "<<hex<<instr->pc<<dec<<" opcode :"<<instr->opcode<<" dr: "<<instr->dr_org<<" dr rn: "<<instr->dr<<" sr1: "<<instr->sr1_org
+    <<" sr1 rn: "<<instr->sr1<<" sr2: "<<instr->sr2_org<<" sr2 rn: "<<instr->sr2<<" rdy sr1: "<<instr->rdy_rs1
+    <<" rdy sr2: "<<instr->rdy_rs2<<" rob_or arf sr1: "<<instr->sr1_rob_or_arf<<" rob_or arf sr2: "<<instr->sr2_rob_or_arf<<endl;
+}
 
 
 void Fetch()
@@ -150,6 +157,7 @@ void Fetch()
     i_b[i].pc = strtoul(pc_str,0,16);
     i_b[i].opcode = opcode;
     i_b[i].dr = dr;
+    i_b[i].dr_org = dr;
     i_b[i].sr1 = sr1;
     i_b[i].sr2 = sr2;
     i_b[i].sr1_org = sr1;
@@ -228,8 +236,10 @@ void Rename()
           rmt[ RN[i].dr ].tag = rob.tail;
           RN[i].rob_tag = rob.tail;
           rmt[ RN[i].dr ].valid = 1;
+          RN[i].dr = rob.tail;
           rob.incr_tail();
         }
+       // print_instr(&RN[i]);
         //cout<<" rename "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<RN[i].opcode<<" "<<RN[i].dr<<" "<<RN[i].sr1<<" "<<RN[i].sr2<<" age "<<RN[i].age<<endl;
       }
 
@@ -254,6 +264,7 @@ void RegRead()
       {
         if(RR[i].sr1_rob_or_arf == 0) { RR[i].rdy_rs1 = 1;} //cout<<"sr1 set to ready"<<endl; }
         if(RR[i].sr2_rob_or_arf == 0) { RR[i].rdy_rs2 = 1; }//cout<<"sr2 set to ready"<<endl; }
+        print_instr(&RR[i]);
       }
       DI = RR;
       RR = NULL;
@@ -338,7 +349,7 @@ void Issue()
       for(int a=0;a<IQ_size;a++) 
           {
             if(IQ.IQ_entry[a].instr != NULL) cout<<"issue queue "<<a<<" "<<hex<<IQ.IQ_entry[a].instr->pc<<dec 
-              <<" "<<IQ.IQ_entry[a].instr->rdy_rs1<<" "<<IQ.IQ_entry[a].instr->rdy_rs2<<endl;
+              <<" "<<IQ.IQ_entry[a].instr->rdy_rs1<<" "<<IQ.IQ_entry[a].instr->rdy_rs2<<" age: "<<IQ.IQ_entry[a].instr->age <<endl;
           }
       for(int z=0;z<width;z++) 
       { cout<<"index:"<<index[z]<<endl;
@@ -389,6 +400,8 @@ void Execute()
           if((IQ.IQ_entry[k].instr->sr1 == dr)&&(dr != -1))
           {
             IQ.IQ_entry[k].instr->rdy_rs1 = 1;
+            cout<<"execute sr1 wakeup"<<endl;
+            //print_instr(IQ.IQ_entry[k].instr);
           }
           if((IQ.IQ_entry[k].instr->sr2 == dr)&&(dr != -1))
           {
@@ -402,7 +415,7 @@ void Execute()
         for(int k=0;k<width;k++)
         {
           if(DI[k].sr1 == dr) DI[k].rdy_rs1 = 1;
-          if(DI[k].sr2 == dr) DI[k].rdy_rs1 = 2;
+          if(DI[k].sr2 == dr) DI[k].rdy_rs2 = 1;
         }
       }
       if(RR != NULL)
@@ -410,7 +423,7 @@ void Execute()
         for(int k=0;k<width;k++)
         {
           if(RR[k].sr1 == dr) RR[k].rdy_rs1 = 1;
-          if(RR[k].sr2 == dr) RR[k].rdy_rs1 = 2;
+          if(RR[k].sr2 == dr) RR[k].rdy_rs2 = 1;
         }
       }
 

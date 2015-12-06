@@ -3,6 +3,7 @@
 
 using namespace std;
 
+bool rob_first_entry = 0;
 
 class instruction{
   public:
@@ -19,23 +20,23 @@ class instruction{
     
     //variables to log entry and exit times
     int fetch_entry;
-    int fetch_exit;
+   // int fetch_exit;
     int decode_entry;
-    int decode_exit;
+   // int decode_exit;
     int rename_entry;
-    int rename_exit;
+   // int rename_exit;
     int regread_entry;
-    int regread_exit;
+   // int regread_exit;
     int dispatch_entry;
-    int dispatch_exit;
+   // int dispatch_exit;
     int issue_entry;
-    int issue_exit;
+   // int issue_exit;
     int execute_entry;
-    int execute_exit;
+   // int execute_exit;
     int writeback_entry;
-    int writeback_exit;
+   // int writeback_exit;
     int retire_entry;
-    int retire_exit;
+   // int retire_exit;
 
     instruction()
     {
@@ -72,6 +73,7 @@ class RMT_block{
 class issue_queue_entry{
   public:
     int valid;
+    int v;
     //int dst_tag;
    // int rdy_rs1;
    // int rdy_rs2;
@@ -80,7 +82,8 @@ class issue_queue_entry{
     instruction *instr;
 
     issue_queue_entry(){
-      valid = 0;
+     // valid = 0;
+     // v =0;
       //dst_tag = 0;
       //rdy_rs1 = 0;
       //rdy_rs2 = 0;
@@ -92,14 +95,24 @@ class issue_queue_entry{
 class ISSUE_queue{
   public:
     issue_queue_entry *IQ_entry;  
+    int *IQ_V;
     unsigned int size;
     int head, tail;
-    void ISSUE_queue_c(unsigned int s)
+   // ISSUE_queue()
+   // {
+   // }
+     ISSUE_queue(unsigned int s)
     {
       size = s;
       head = 0;
       tail = 0;
       IQ_entry = new issue_queue_entry[size];
+      IQ_V = new int[size];
+     // for(int i=0;i<size;i++)
+     // {
+      //  cout<<" pointer "<<&IQ_entry[i]<<endl;
+     // }
+     // for(int i =0;i<size;i++) IQ_V[i] = 0;
     }
     //bool is_IQ_free()
     //{
@@ -120,9 +133,11 @@ class ISSUE_queue{
     }
     int free_entry()
     {
+      for(int i =0;i<size;i++) cout<<"IQ_V "<<i<<" "<<IQ_V[i]<<endl;
       for(int i=0; i<size; i++)
       {
-        if(IQ_entry[i].valid == 0) return i;
+       // if(IQ_entry[i].valid == 0) return i;
+        if(IQ_V[i] == 0) return i;
       }
       return (-1);
 
@@ -132,7 +147,8 @@ class ISSUE_queue{
       int count = 0;
       for(int i=0;i<size; i++)
       {
-        if(IQ_entry[i].valid == 0) count++;
+       // if(IQ_entry[i].valid == 0) count++;
+        if(IQ_V[i] == 0) count++;
       }
       cout<<"issue count "<<count<<endl;
       return count;
@@ -143,12 +159,17 @@ class ISSUE_queue{
 class ROB_entry{
   public:
     int value;
-    int dst;
+  //  int dst;
     int rdy;
-    int exc;
-    int mis;
-    int pc;
+ //   int exc;
+ //   int mis;
+ //   int pc;
+  //  int valid;
     instruction *instr;
+  //  ROB_entry()
+  //  {
+  //    valid = 0;
+  //  }
 };
 
 class ROB_table {
@@ -161,25 +182,88 @@ class ROB_table {
     {
       size = s;
       head = 0;
-      tail = 0;
+      tail = 0; //was 0
       rob_entry = new ROB_entry[size];
     }
 
-    bool is_ROB_free()
+   // bool is_ROB_free()
+   // {
+   //   int space;
+   //   //implement full or empty calculations using head nad tail
+   //   for(int i=head;i<head+width;i++)
+   //   {
+   //     if(rob_entry[i].instr != NULL)
+   //       if(rob_entry[i].rdy == 0) return 0;
+   //   }
+   //   if(head > tail) space = head - tail - 1;
+   //   if(tail > head) space = size - tail + head - 1;
+   //   cout<<"rob stats "<<space<<" "<<head<<" "<<tail<<endl; 
+   //   if(space>width) return 1;
+   //   if((head == 0)&&(tail == 0)) return 1; //maybe not correct
+   //   else if(space<width) return 0;
+   // }
+    
+    //int is_ROB_free()
+    //{
+    //  cout<<"rob stats "<<" "<<head<<" "<<tail<<endl; 
+    //  int count = 0;
+    //  if(tail>=head)
+    //  {
+    //    for(int i=tail;i<size; i++)
+    //    {
+    //      if(rob_entry[i].valid == 0) count++;
+    //    }
+    //    for(int i=0;i<head; i++)
+    //    {
+    //      if(rob_entry[i].valid == 0) count++;
+    //    }
+    //  }
+    //  if(tail<head)
+    //  {
+    //    for(int i=tail;i<head;i++)
+    //    {
+    //      if(rob_entry[i].valid == 0) count++;
+    //    }
+    //  }
+    int is_ROB_free()
     {
-      int space;
-      //implement full or empty calculations using head nad tail
-      if(head > tail) space = head - tail - 1;
-      if(tail > head) space = size - tail + head - 1;
-      cout<<"rob stats "<<space<<" "<<head<<" "<<tail<<endl; 
-      if(space>width) return 1;
-      if((head == 0)&&(tail == 0)) return 1; //maybe not correct
-      else if(space<width) return 0;
+      cout<<"rob stats "<<" "<<head<<" "<<tail<<endl; 
+      int count = 0;
+      if(tail>head)
+      {
+        for(int i=tail;i<size; i++)
+        {
+           count++;
+        }
+        for(int i=0;i<head; i++)
+        {
+           count++;
+        }
+      }
+      if(tail<head)
+      {
+        for(int i=tail;i<head;i++)
+        {
+           count++;
+        }
+      }
+      if((head == 0)&&(tail == 0) &&(rob_first_entry == 0))
+      {
+        cout<<"Entered first entry"<<endl;
+        rob_first_entry = 1;
+        count = size;
+
+      }
+
+    
+      if(count<4) cout<<"rob full width is "<<width<<endl;
+      return count;
     }
     void incr_tail()
     {
       if(tail<size) tail++;
       else if (tail == size) tail = 0;
+      if(tail == head) cout<<"rob is full by tail increment"<<endl;
     }
     void incr_head()
     {

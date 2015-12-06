@@ -238,6 +238,8 @@ void Rename()
   //      cout<<"rename abc 3 "<<&IQ->IQ_entry[0]<<endl;
        // rob.rob_entry[rob.tail].dst = RN[i].dr;
         rob.rob_entry[rob.tail].rdy = 0;
+        cout<<" rename rob set"<<endl;
+       // print_instr(&RN[i]);
        // rob.rob_entry[rob.tail].exc = 0;
        // rob.rob_entry[rob.tail].mis = 0;
    //     cout<<"rename abc 4 "<<&IQ->IQ_entry[0]<<endl;
@@ -262,13 +264,18 @@ void Rename()
         }
 
         // Enter the rob value in RMT for destination
-       // if(RN[i].dr != -1)
-       // {
-          rmt[ RN[i].dr ].tag = rob.tail;
-          RN[i].rob_tag = rob.tail;
-          rmt[ RN[i].dr ].valid = 1;
-          RN[i].dr = rob.tail;
-          rob.incr_tail();
+         // rob.rob_entry[rob.tail].instr = &RN[i];
+         // rob.rob_entry[rob.tail].rdy = 0;
+         if(RN[i].dr != -1)
+         {
+          rmt[ RN[i].dr ].tag = rob.tail; //no need for -1
+         // RN[i].rob_tag = rob.tail; 
+          rmt[ RN[i].dr ].valid = 1; //no need for -1
+         }
+          RN[i].rob_tag = rob.tail; 
+          RN[i].dr = rob.tail;  //do it always
+          rob.incr_tail();     //do it always
+          print_instr(&RN[i]);
          // RN[i].regread_entry = cycle_count;
        // }
        // print_instr(&RN[i]);
@@ -362,6 +369,7 @@ void Issue()
     int min = 11000;
     int min_last = -1;
     int index = -1;
+    int prev_index = -1;
    // index = new int[width];
    // for(int z=0;z<width;z++) index[z] = (-1);
     int count = 0;
@@ -381,7 +389,7 @@ void Issue()
               { 
                 min = IQ->IQ_entry[j].instr->age; 
                 index = j;
-                //cout<<"in min"<<min<<" "<<index[i]<<endl;
+                cout<<"in min "<<min<<" "<<index<<" prev "<<prev_index<<endl;
                }
              }
           }
@@ -390,12 +398,7 @@ void Issue()
         //cout<<"min last:"<<min_last<<endl;
                // count++;
                // cout<<"count: "<<count<<endl;
-      for(int a=0;a<IQ_size;a++) 
-          {
-            if(IQ->IQ_entry[a].instr != NULL) cout<<"issue queue "<<a<<" "<<hex<<IQ->IQ_entry[a].instr->pc<<dec 
-              <<" "<<IQ->IQ_entry[a].instr->rdy_rs1<<" "<<IQ->IQ_entry[a].instr->rdy_rs2<<" age: "<<IQ->IQ_entry[a].instr->age <<" valid "<<IQ->IQ_entry[a].valid<<" "<<IQ->IQ_entry[a].v<<" test "<<IQ->IQ_V[a]<<endl;
-          }
-        if(index > -1) 
+        if((index > -1)&&(index != prev_index)) 
         {
             IQ->IQ_entry[index].valid = 0;
             IQ->IQ_entry[index].v = 0;
@@ -415,11 +418,18 @@ void Issue()
              if(IQ->IQ_entry[index].instr->opcode == 0) exc_lst[free_entry].cycle_to_complete = 1;
              if(IQ->IQ_entry[index].instr->opcode == 1) exc_lst[free_entry].cycle_to_complete = 2;
              if(IQ->IQ_entry[index].instr->opcode == 2) exc_lst[free_entry].cycle_to_complete = 5;
+             prev_index = index;
         }
          go_exec = 1;
        }
 
   }
+      for(int a=0;a<IQ_size;a++) 
+          {
+             if(IQ->IQ_entry[a].instr != NULL) 
+              cout<<"issue queue "<<a<<" "<<hex<<IQ->IQ_entry[a].instr->pc<<dec 
+              <<" "<<IQ->IQ_entry[a].instr->rdy_rs1<<" "<<IQ->IQ_entry[a].instr->rdy_rs2<<" age: "<<IQ->IQ_entry[a].instr->age <<" valid "<<IQ->IQ_entry[a].valid<<" "<<IQ->IQ_entry[a].v<<" test "<<IQ->IQ_V[a]<<endl;
+          }
        // cout<<"issue abc "<<&IQ->IQ_entry[0]<<endl;
 }
 
@@ -434,7 +444,9 @@ void Execute()
     {
       cout<<" EXECUTE check 1"<<endl;
       int dr = exc_lst[i].instr->dr; //this is the destination that will complete this cycle.
+      int dr_org = exc_lst[i].instr->dr_org; //this is the original  destination that will complete this cycle.
       cout<<"Exc "<<hex<<exc_lst[i].instr->pc<<dec<<endl;
+      print_instr(exc_lst[i].instr);
       for(int k=0; k<IQ_size; k++)
       {
       //  cout<<"check 1"<<endl;
@@ -444,14 +456,14 @@ void Execute()
         if(IQ->IQ_entry[k].instr != NULL)
         {
        // cout<<"check 2"<<endl;
-          if((IQ->IQ_entry[k].instr->sr1 == dr)&&(dr != -1))
+          if((IQ->IQ_entry[k].instr->sr1 == dr))//&&(dr != -1))
           {
        // cout<<"check 3"<<endl;
             IQ->IQ_entry[k].instr->rdy_rs1 = 1;
             cout<<"execute sr1 wakeup"<<endl;
             //print_instr(IQ->IQ_entry[k].instr);
           }
-          if((IQ->IQ_entry[k].instr->sr2 == dr)&&(dr != -1))
+          if((IQ->IQ_entry[k].instr->sr2 == dr))//&&(dr != -1))
           {
        // cout<<"check 4"<<endl;
             IQ->IQ_entry[k].instr->rdy_rs2 = 1;
@@ -465,16 +477,16 @@ void Execute()
       {
         for(int k=0;k<width;k++)
         {
-          if(DI[k].sr1 == dr) DI[k].rdy_rs1 = 1;
-          if(DI[k].sr2 == dr) DI[k].rdy_rs2 = 1;
+          if((DI[k].sr1 == dr)) /*&&(dr != -1))*/ { DI[k].rdy_rs1 = 1; cout<<"ready set in decode bundle sr1 "<<dr<<endl;}
+          if((DI[k].sr2 == dr)) /*&&(dr != -1))*/ { DI[k].rdy_rs2 = 1; cout<<"ready set in decode bundle sr2 "<<dr<<endl;}
         }
       }
       if(RR != NULL)
       {
         for(int k=0;k<width;k++)
         {
-          if(RR[k].sr1 == dr) RR[k].rdy_rs1 = 1;
-          if(RR[k].sr2 == dr) RR[k].rdy_rs2 = 1;
+          if((RR[k].sr1 == dr))/*&&(dr != -1))*/ { RR[k].rdy_rs1 = 1; cout<<"ready set in rename bundle sr1"<<endl; }
+          if((RR[k].sr2 == dr))/*&&(dr != -1))*/ { RR[k].rdy_rs2 = 1; cout<<"ready set in rename bundle sr2"<<endl; }
         }
       }
     
@@ -522,7 +534,7 @@ void Writeback()
       if(WB[i].valid == 1)
       {
         rob.rob_entry[WB[i].instr->rob_tag].rdy =1;
-        cout<<"rob tag "<<WB[i].instr->rob_tag<<endl;
+        cout<<"rob tag "<<WB[i].instr->rob_tag<<" rob rdy "<<rob.rob_entry[WB[i].instr->rob_tag].rdy<<endl;
         print_instr(WB[i].instr);
         WB[i].valid = 0;
         WB[i].instr->retire_entry = cycle_count;
@@ -550,7 +562,7 @@ void Retire()
     for(int k=head;k<(head+width);k++)
     {
       cout<<"retire iter "<<k<<endl;
-     if((rob.rob_entry[k].rdy == 0)) break; //&&(!(rob.head == 0)&&(rob.tail == 1))) break;
+     if((rob.rob_entry[k].rdy == 0)){ cout<<"breaking bad "<<rob.rob_entry[k].rdy<<endl; print_instr(rob.rob_entry[k].instr); break;} //&&(!(rob.head == 0)&&(rob.tail == 1))) break;
      if(rob.rob_entry[k].rdy == 1)
      {
       // rob.rob_entry[k].instr->retire_entry = cycle_count;

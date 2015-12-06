@@ -137,7 +137,10 @@ class ISSUE_queue{
       for(int i=0; i<size; i++)
       {
        // if(IQ_entry[i].valid == 0) return i;
-        if(IQ_V[i] == 0) return i;
+        if(IQ_V[i] == 0) {
+        cout<<"abc "<<i<<endl;
+        return i;
+        }
       }
       return (-1);
 

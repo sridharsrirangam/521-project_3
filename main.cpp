@@ -194,7 +194,7 @@ void Fetch()
    }
     
   }
-        cout<<"fetch abc "<<&IQ->IQ_entry[0]<<endl;
+//        cout<<"fetch abc "<<&IQ->IQ_entry[0]<<endl;
 }//end of fetch
  
 void Decode()//maybe send bundle pointer to decode from fetch
@@ -213,7 +213,7 @@ void Decode()//maybe send bundle pointer to decode from fetch
     }
     else DE_empty = 1;
   }
-        cout<<"decode abc "<<&IQ->IQ_entry[0]<<endl;
+ //       cout<<"decode abc "<<&IQ->IQ_entry[0]<<endl;
 
 
 }
@@ -223,7 +223,7 @@ void Rename()
   cout<<"Rename check 1"<<endl;
   if(RN != NULL)
   {
-        cout<<"rename abc 1 "<<&IQ->IQ_entry[0]<<endl;
+  //      cout<<"rename abc 1 "<<&IQ->IQ_entry[0]<<endl;
     cout<<"Rename check 2"<<endl;
     //if((!RR_empty)&&(rob.is_ROB_free()))
     if((rob.is_ROB_free() >= width)&&(RR_empty != 1))
@@ -232,15 +232,15 @@ void Rename()
       cout<<"Rename check 3"<<endl;
       for(int i=0;i<width;i++)
       {
-        cout<<"rename abc 2 "<<&IQ->IQ_entry[0]<<endl;
-        cout<<"rob tail"<<rob.tail<<endl;
+   //     cout<<"rename abc 2 "<<&IQ->IQ_entry[0]<<endl;
+   //     cout<<"rob tail"<<rob.tail<<endl;
        // rob.rob_entry[rob.tail].pc = RN[i].pc;
-        cout<<"rename abc 3 "<<&IQ->IQ_entry[0]<<endl;
+  //      cout<<"rename abc 3 "<<&IQ->IQ_entry[0]<<endl;
        // rob.rob_entry[rob.tail].dst = RN[i].dr;
         rob.rob_entry[rob.tail].rdy = 0;
        // rob.rob_entry[rob.tail].exc = 0;
        // rob.rob_entry[rob.tail].mis = 0;
-        cout<<"rename abc 4 "<<&IQ->IQ_entry[0]<<endl;
+   //     cout<<"rename abc 4 "<<&IQ->IQ_entry[0]<<endl;
         rob.rob_entry[rob.tail].instr = &RN[i];
         // newly addded
        // rob.rob_entry[rob.tail].valid = 1;
@@ -282,7 +282,7 @@ void Rename()
     }
     else RN_empty = 1;
   }
-        cout<<"rename abc end "<<&IQ->IQ_entry[0]<<endl;
+    //    cout<<"rename abc end "<<&IQ->IQ_entry[0]<<endl;
   }
 
 
@@ -309,7 +309,7 @@ void RegRead()
     }
     else RR_empty = 1;
     }
-        cout<<"regread abc "<<&IQ->IQ_entry[0]<<endl;
+     //   cout<<"regread abc "<<&IQ->IQ_entry[0]<<endl;
 }
 
 void Dispatch()
@@ -350,7 +350,7 @@ void Dispatch()
     }
   }
     //else DI_empty = 1;
-        cout<<"dispatch abc "<<&IQ->IQ_entry[0]<<endl;
+      //  cout<<"dispatch abc "<<&IQ->IQ_entry[0]<<endl;
 }
 
 void Issue()
@@ -361,9 +361,9 @@ void Issue()
   {
     int min = 11000;
     int min_last = -1;
-    int *index;
-    index = new int[width];
-    for(int z=0;z<width;z++) index[z] = (-1);
+    int index = -1;
+   // index = new int[width];
+   // for(int z=0;z<width;z++) index[z] = (-1);
     int count = 0;
     for(int i=0;i<width;i++) //since we need 4 instructions
     {
@@ -377,39 +377,30 @@ void Issue()
           {
             if((IQ->IQ_entry[j].instr->rdy_rs1 == 1)&&(IQ->IQ_entry[j].instr->rdy_rs2==1))
             {
-              if((IQ->IQ_entry[j].instr->age <min)&&(IQ->IQ_entry[j].instr->age > min_last))
+              if((IQ->IQ_entry[j].instr->age <min)) //&&(IQ->IQ_entry[j].instr->age > min_last))
               { 
                 min = IQ->IQ_entry[j].instr->age; 
-                index[i] = j;
+                index = j;
                 //cout<<"in min"<<min<<" "<<index[i]<<endl;
                }
              }
           }
         }
       }
-        min_last = min;
         //cout<<"min last:"<<min_last<<endl;
                // count++;
                // cout<<"count: "<<count<<endl;
-    }
       for(int a=0;a<IQ_size;a++) 
           {
             if(IQ->IQ_entry[a].instr != NULL) cout<<"issue queue "<<a<<" "<<hex<<IQ->IQ_entry[a].instr->pc<<dec 
               <<" "<<IQ->IQ_entry[a].instr->rdy_rs1<<" "<<IQ->IQ_entry[a].instr->rdy_rs2<<" age: "<<IQ->IQ_entry[a].instr->age <<" valid "<<IQ->IQ_entry[a].valid<<" "<<IQ->IQ_entry[a].v<<" test "<<IQ->IQ_V[a]<<endl;
           }
-      for(int z=0;z<width;z++) 
-      { cout<<"index:"<<index[z]<<endl;
-        if(index[z] >=0) { count++; cout<<"count:"<<count<<endl;}
-      }
-      //unless 4 instructions are ready, we dont send them to execute.verify this in forums and implement
-       if(count == width) //this is count for seeing if issue has 4 ready instrs
-       {
-         for(int i=0;i<width;i++)
-         {
-            IQ->IQ_entry[index[i]].valid = 0;
-            IQ->IQ_entry[index[i]].v = 0;
-            IQ->IQ_V[index[i]] = 0;
-            IQ->IQ_entry[index[i]].instr->execute_entry = cycle_count;
+        if(index > -1) 
+        {
+            IQ->IQ_entry[index].valid = 0;
+            IQ->IQ_entry[index].v = 0;
+            IQ->IQ_V[index] = 0;
+            IQ->IQ_entry[index].instr->execute_entry = cycle_count;
             //cout<<"Issue min "<<min<<" "<<index<<endl;
             ///to get a free netry in execute list
              int free_entry;
@@ -417,19 +408,19 @@ void Issue()
              {
                if(exc_lst[k].valid == 0) { free_entry = k; break; }
              }
-             exc_lst[free_entry].instr =  IQ->IQ_entry[index[i]].instr;
+             exc_lst[free_entry].instr =  IQ->IQ_entry[index].instr;
             // if(IQ->IQ_entry[0].instr->pc == 0x2b663c) cout<<"ALERT"<<" index "<<index[i]<<endl;
              cout<<hex<<exc_lst[free_entry].instr->pc<<dec<<endl;
              exc_lst[free_entry].valid = 1;
-             if(IQ->IQ_entry[i].instr->opcode == 0) exc_lst[free_entry].cycle_to_complete = 1;
-             if(IQ->IQ_entry[i].instr->opcode == 1) exc_lst[free_entry].cycle_to_complete = 2;
-             if(IQ->IQ_entry[i].instr->opcode == 2) exc_lst[free_entry].cycle_to_complete = 5;
+             if(IQ->IQ_entry[index].instr->opcode == 0) exc_lst[free_entry].cycle_to_complete = 1;
+             if(IQ->IQ_entry[index].instr->opcode == 1) exc_lst[free_entry].cycle_to_complete = 2;
+             if(IQ->IQ_entry[index].instr->opcode == 2) exc_lst[free_entry].cycle_to_complete = 5;
         }
          go_exec = 1;
        }
 
   }
-        cout<<"issue abc "<<&IQ->IQ_entry[0]<<endl;
+       // cout<<"issue abc "<<&IQ->IQ_entry[0]<<endl;
 }
 
 void Execute()
@@ -446,10 +437,10 @@ void Execute()
       cout<<"Exc "<<hex<<exc_lst[i].instr->pc<<dec<<endl;
       for(int k=0; k<IQ_size; k++)
       {
-        cout<<"check 1"<<endl;
-        cout<<IQ<<" "<<k<<endl;
-        cout<<"abc "<<&IQ->IQ_entry[0]<<endl;
-        cout<<"check 2"<<endl;
+      //  cout<<"check 1"<<endl;
+       // cout<<IQ<<" "<<k<<endl;
+       // cout<<"abc "<<&IQ->IQ_entry[0]<<endl;
+       // cout<<"check 2"<<endl;
         if(IQ->IQ_entry[k].instr != NULL)
         {
        // cout<<"check 2"<<endl;
@@ -466,7 +457,7 @@ void Execute()
             IQ->IQ_entry[k].instr->rdy_rs2 = 1;
           }
         }
-        else cout<<"instr is null"<<endl;
+       // else cout<<"instr is null"<<endl;
        // cout<<"check 5"<<endl;
       }
       //wake up instructions in DI and RR also
@@ -494,7 +485,7 @@ void Execute()
       {
         if(WB[k].valid == 0) { free_entry = k; break; }
       }
-      cout<<"WB free entry" <<free_entry<<endl;
+     // cout<<"WB free entry" <<free_entry<<endl;
       WB[free_entry].valid = 1;
       WB[free_entry].instr = exc_lst[i].instr;
       exc_lst[i].valid = 0;
@@ -541,7 +532,7 @@ void Writeback()
     go_WB = 0;
     go_RT = 1;
   }
-        cout<<"writeback abc "<<&IQ->IQ_entry[0]<<endl;
+      //  cout<<"writeback abc "<<&IQ->IQ_entry[0]<<endl;
 
 }
 
@@ -583,7 +574,7 @@ void Retire()
  // }
 
 
-        cout<<"retire abc "<<&IQ->IQ_entry[0]<<endl;
+       // cout<<"retire abc "<<&IQ->IQ_entry[0]<<endl;
 }
 
   

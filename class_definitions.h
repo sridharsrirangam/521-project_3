@@ -133,7 +133,7 @@ class ISSUE_queue{
     }
     int free_entry()
     {
-      for(int i =0;i<size;i++) cout<<"IQ_V "<<i<<" "<<IQ_V[i]<<endl;
+     // for(int i =0;i<size;i++) cout<<"IQ_V "<<i<<" "<<IQ_V[i]<<endl;
       for(int i=0; i<size; i++)
       {
        // if(IQ_entry[i].valid == 0) return i;

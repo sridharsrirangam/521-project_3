@@ -150,11 +150,13 @@ bool Advance_cycle()
 void print_instr(instruction *instr)
 {
   if(instr != NULL)
+  {
   cout<<" PC: "<<hex<<instr->pc<<dec<<" opcode :"<<instr->opcode<<" dr: "<<instr->dr_org<<" dr rn: "<<instr->dr<<" sr1: "<<instr->sr1_org
     <<" sr1 rn: "<<instr->sr1<<" sr2: "<<instr->sr2_org<<" sr2 rn: "<<instr->sr2<<" rdy sr1: "<<instr->rdy_rs1
     <<" rdy sr2: "<<instr->rdy_rs2<<" rob_or arf sr1: "<<instr->sr1_rob_or_arf<<" rob_or arf sr2: "<<instr->sr2_rob_or_arf<<" rob tag "<<instr->rob_tag<<" age: "<<instr->age<<endl;
+cout<<" fetch entry "<<instr->fetch_entry<<" decode entry "<<instr->decode_entry<<" rename entry "<<instr->rename_entry<<" regread entry "<<instr->regread_entry<<" dispatch entry "<<instr->dispatch_entry<<" issue entry "<<instr->issue_entry<< " execute entry "<<instr->execute_entry<<" writeback entry "<<instr->writeback_entry<<" retire entry "<<instr->retire_entry<<endl;
 }
-
+}
 
 void Fetch()
 {
@@ -238,7 +240,7 @@ void Rename()
   //      cout<<"rename abc 3 "<<&IQ->IQ_entry[0]<<endl;
        // rob.rob_entry[rob.tail].dst = RN[i].dr;
         rob.rob_entry[rob.tail].rdy = 0;
-        cout<<" rename rob set"<<endl;
+       // cout<<" rename rob set"<<endl;
        // print_instr(&RN[i]);
        // rob.rob_entry[rob.tail].exc = 0;
        // rob.rob_entry[rob.tail].mis = 0;
@@ -249,6 +251,9 @@ void Rename()
 
         
         //rename source tags.
+        if(RN[i].sr1 == -1) RN[i].sr1_rob_or_arf = 0;
+        if(RN[i].sr2 == -1) RN[i].sr2_rob_or_arf = 0;
+
         if((RN[i].sr1 != -1)&&(rmt[RN[i].sr1].valid == 1)) //register is valid and ROB entry exits
         {
           //cout<<"sr 1 renamed"<<endl;
@@ -275,7 +280,7 @@ void Rename()
           RN[i].rob_tag = rob.tail; 
           RN[i].dr = rob.tail;  //do it always
           rob.incr_tail();     //do it always
-          print_instr(&RN[i]);
+         // print_instr(&RN[i]);
          // RN[i].regread_entry = cycle_count;
        // }
        // print_instr(&RN[i]);
@@ -309,6 +314,18 @@ void RegRead()
         if(RR[i].sr2_rob_or_arf == 0) { RR[i].rdy_rs2 = 1; }//cout<<"sr2 set to ready"<<endl; }
         //print_instr(&RR[i]);
       // RR[i].dispatch_entry = cycle_count;
+        if(RR[i].sr1_rob_or_arf == 1)
+        {
+          cout<<"regread rob "<<RR[i].sr1<<" "<<rob.rob_entry[RR[i].sr1].rdy<<endl;
+          if(rob.rob_entry[RR[i].sr1].rdy == 1) RR[i].rdy_rs1 = 1;
+        }
+        if(RR[i].sr2_rob_or_arf == 1)
+        {
+          if(rob.rob_entry[RR[i].sr2].rdy == 1) RR[i].rdy_rs2 = 1;
+        }
+        cout<<"readread stage"<<endl;
+        print_instr(&RR[i]);
+
       }
       DI = RR;
       RR = NULL;
@@ -429,6 +446,7 @@ void Issue()
              if(IQ->IQ_entry[a].instr != NULL) 
               cout<<"issue queue "<<a<<" "<<hex<<IQ->IQ_entry[a].instr->pc<<dec 
               <<" "<<IQ->IQ_entry[a].instr->rdy_rs1<<" "<<IQ->IQ_entry[a].instr->rdy_rs2<<" age: "<<IQ->IQ_entry[a].instr->age <<" valid "<<IQ->IQ_entry[a].valid<<" "<<IQ->IQ_entry[a].v<<" test "<<IQ->IQ_V[a]<<endl;
+        //  print_instr(IQ->IQ_entry[a].instr);
           }
        // cout<<"issue abc "<<&IQ->IQ_entry[0]<<endl;
 }
@@ -469,6 +487,7 @@ void Execute()
             IQ->IQ_entry[k].instr->rdy_rs2 = 1;
           }
         }
+        else cout<<"IQ instr null"<<endl;
        // else cout<<"instr is null"<<endl;
        // cout<<"check 5"<<endl;
       }
@@ -479,16 +498,30 @@ void Execute()
         {
           if((DI[k].sr1 == dr)) /*&&(dr != -1))*/ { DI[k].rdy_rs1 = 1; cout<<"ready set in decode bundle sr1 "<<dr<<endl;}
           if((DI[k].sr2 == dr)) /*&&(dr != -1))*/ { DI[k].rdy_rs2 = 1; cout<<"ready set in decode bundle sr2 "<<dr<<endl;}
+          cout<<"decode constents in execute stage"<<endl;
+          print_instr(&DI[k]);
         }
       }
       if(RR != NULL)
       {
         for(int k=0;k<width;k++)
         {
-          if((RR[k].sr1 == dr))/*&&(dr != -1))*/ { RR[k].rdy_rs1 = 1; cout<<"ready set in rename bundle sr1"<<endl; }
-          if((RR[k].sr2 == dr))/*&&(dr != -1))*/ { RR[k].rdy_rs2 = 1; cout<<"ready set in rename bundle sr2"<<endl; }
+          if((RR[k].sr1 == dr))/*&&(dr != -1))*/ { RR[k].rdy_rs1 = 1; cout<<"ready set in regread bundle sr1"<<endl; }
+          if((RR[k].sr2 == dr))/*&&(dr != -1))*/ { RR[k].rdy_rs2 = 1; cout<<"ready set in regread bundle sr2"<<endl; }
+          cout<<"RR  constents in execute stage"<<endl;
+          print_instr(&RR[k]);
         }
       }
+     // if(RN != NULL)
+     // {
+     //   for(int k=0;k<width;k++)
+     //   {
+     //     cout<<"RN contents during execute"<<endl;
+     //     print_instr(&RN[k]);
+     //   }
+     // }
+
+
     
 
       //Put the instruction in WB
@@ -535,9 +568,23 @@ void Writeback()
       {
         rob.rob_entry[WB[i].instr->rob_tag].rdy =1;
         cout<<"rob tag "<<WB[i].instr->rob_tag<<" rob rdy "<<rob.rob_entry[WB[i].instr->rob_tag].rdy<<endl;
+        cout<<"writeback instruction"<<endl;
         print_instr(WB[i].instr);
+        cout<<" ready rob tag "<<WB[i].instr->rob_tag<<" "<<rob.rob_entry[WB[i].instr->rob_tag].rdy<<endl;
         WB[i].valid = 0;
         WB[i].instr->retire_entry = cycle_count;
+      if(RR != NULL)
+      {
+        for(int k=0;k<width;k++)
+        {
+           if((RR[k].sr1 == WB[i].instr->dr))/*&&(dr != -1))*/ { RR[k].rdy_rs1 = 1; cout<<"ready set in rename bundle sr1"<<endl; }
+            if((RR[k].sr2 == WB[i].instr->dr))/*&&(dr != -1))*/ { RR[k].rdy_rs2 = 1; cout<<"ready set in rename bundle sr2"<<endl; }
+         // cout<<"wb instruction"<<endl;
+         // print_instr(WB[i].instr);
+          cout<<"RN  constents in execute stage"<<endl;
+          print_instr(&RR[k]);
+        }
+      }
       }
       
     }
@@ -568,6 +615,10 @@ void Retire()
       // rob.rob_entry[k].instr->retire_entry = cycle_count;
       // rob.rob_entry[k].valid = 0;
        cout<<"retired insruction "<<rob.rob_entry[k].instr->age<<" rob head "<<rob.head<<endl;
+       for(int i =0; i<IQ_size; i++)
+       {
+         if(rmt[i].tag == k) rmt[i].valid = 0;
+       }
        rob.incr_head();
        myfile<<rob.rob_entry[k].instr->age<<" "<<"fu{"<<rob.rob_entry[k].instr->opcode<<"} src{"<<rob.rob_entry[k].instr->sr1_org<<","<<rob.rob_entry[k].instr->sr2_org<<"} dst{"
          <<rob.rob_entry[k].instr->dr_org<<"} FE{"<<rob.rob_entry[k].instr->fetch_entry<<","

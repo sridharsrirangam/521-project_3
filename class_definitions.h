@@ -42,6 +42,15 @@ class instruction{
     {
       rdy_rs1 = 0;
       rdy_rs2 = 0;
+      fetch_entry = 0;
+      decode_entry = 0;
+      rename_entry = 0;
+      regread_entry = 0;
+      dispatch_entry = 0;
+      issue_entry = 0;
+      execute_entry = 0;
+      writeback_entry = 0;
+      retire_entry = 0;
     }
 
 };

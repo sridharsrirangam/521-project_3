@@ -24,6 +24,7 @@ unsigned int width;
 FILE *pFile;
 
 ofstream myfile;
+ofstream fetchfile;
 
 
 #include "class_definitions.h"
@@ -112,6 +113,7 @@ int main(int argc, char *argv[])
   WB = new Writeback_list[5*width];
 
   myfile.open("scope_check.txt");
+  fetchfile.open("check_fetch.txt");
 
  //while(fscanf(pFile,"%s %d %d %d %d",&pc_str,&opcode,&dr,&sr1,&sr2))
   do
@@ -132,10 +134,11 @@ int main(int argc, char *argv[])
     Fetch();
 
   }while(Advance_cycle());
-  for(int i=0;i<67;i++) cout<<"rmt["<<i<<"] = "<<rmt[i].valid<<" "<<rmt[i].tag<<endl;
+  for(int i=0;i<67;i++) //cout<<"rmt["<<i<<"] = "<<rmt[i].valid<<" "<<rmt[i].tag<<endl;
  // for(int i=0;i<IQ_size;i++) cout<<"IQ["<<i<<"] = "<<IQ->IQ_entry[i].valid<<" "<<hex<<IQ->IQ_entry[i].instr->pc<<" "<<"age "<<IQ->IQ_entry[i].instr->age<<endl;
   cout<<"total reads: "<<dec<<total_reads<<endl;
   myfile.close();
+  fetchfile.close();
 }//end of main
 
 bool Advance_cycle()
@@ -166,8 +169,8 @@ void Fetch()
   int sr1,sr2;
   char pc_str[10];
 
-  //if((DE_empty != 1)&&(! feof(pFile))) //set to 1 if DE is not empty
-  if(! feof(pFile)) //set to 1 if DE is not empty
+  if((DE_empty != 1))//&&(! feof(pFile))) //set to 1 if DE is not empty
+ // if(! feof(pFile)) //set to 1 if DE is not empty
   {
     i_b = new instruction[width];
     //i_b.instruction_bundle_c(width);
@@ -187,7 +190,7 @@ void Fetch()
     i_b[i].rdy_rs1 = 0;
     i_b[i].rdy_rs2 = 0;
     fetch_age_cycle++;
-    //cout<<" instruction "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<i_b[i].opcode<<" "<<i_b[i].dr<<" "<<i_b[i].sr1_org<<" "<<i_b[i].sr2_org<<" age "<<i_b[i].age<<endl;
+   // fetchfile<<" instruction "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<i_b[i].opcode<<" "<<i_b[i].dr<<" "<<i_b[i].sr1_org<<" "<<i_b[i].sr2_org<<" age "<<i_b[i].age<<endl;
     DE = i_b;
     i_b[i].fetch_entry = cycle_count-1;
     i_b[i].decode_entry = cycle_count;
@@ -204,17 +207,21 @@ void Decode()//maybe send bundle pointer to decode from fetch
   if(DE != NULL)
   {
       for(int i =0;i<width;i++) DE[i].rename_entry = cycle_count;
-    cout<<"Decode check 1"<<endl;
+    //cout<<"Decode check 1"<<endl;
     if(RN_empty != 1) // 0 means empty
     {
-      for(int i =0;i<width;i++) DE[i].rename_entry = cycle_count;
+      fetchfile<<"ready states at decode"<<DE_empty<<" "<<RN_empty<<" "<<RR_empty<<" "<<DI_empty<<endl;
+      for(int i =0;i<width;i++) { DE[i].rename_entry = cycle_count;} 
+      for(int i=0;i<width;i++) fetchfile<<" instruction "<<i<<" "<<hex<<DE[i].pc<<dec<<" "<<DE[i].opcode<<" "<<DE[i].dr<<" "<<DE[i].sr1_org<<" "<<DE[i].sr2_org<<" age "<<DE[i].age<<endl;
       DE_empty = 0;
-      cout<<"Decode check 2"<<endl;
+      //cout<<"Decode check 2"<<endl;
       RN = DE;
       DE = NULL;
     }
     else DE_empty = 1;
+      //for(int i =0;i<width;i++) { fetchfile<<DE[i].age<<endl;}
   }
+   // else DE_empty = 1;
  //       cout<<"decode abc "<<&IQ->IQ_entry[0]<<endl;
 
 
@@ -222,11 +229,11 @@ void Decode()//maybe send bundle pointer to decode from fetch
 
 void Rename()
 {
-  cout<<"Rename check 1"<<endl;
+  //cout<<"Rename check 1"<<endl;
   if(RN != NULL)
   {
   //      cout<<"rename abc 1 "<<&IQ->IQ_entry[0]<<endl;
-    cout<<"Rename check 2"<<endl;
+    //cout<<"Rename check 2"<<endl;
     //if((!RR_empty)&&(rob.is_ROB_free()))
     if((rob.is_ROB_free() >= width)&&(RR_empty != 1))
     {
@@ -316,7 +323,7 @@ void RegRead()
       // RR[i].dispatch_entry = cycle_count;
         if(RR[i].sr1_rob_or_arf == 1)
         {
-          cout<<"regread rob "<<RR[i].sr1<<" "<<rob.rob_entry[RR[i].sr1].rdy<<endl;
+          //cout<<"regread rob "<<RR[i].sr1<<" "<<rob.rob_entry[RR[i].sr1].rdy<<endl;
           if(rob.rob_entry[RR[i].sr1].rdy == 1) RR[i].rdy_rs1 = 1;
         }
         if(RR[i].sr2_rob_or_arf == 1)
@@ -324,7 +331,7 @@ void RegRead()
           if(rob.rob_entry[RR[i].sr2].rdy == 1) RR[i].rdy_rs2 = 1;
         }
         cout<<"readread stage"<<endl;
-        print_instr(&RR[i]);
+        //print_instr(&RR[i]);
 
       }
       DI = RR;
@@ -347,8 +354,8 @@ void Dispatch()
       for(int i=0;i<width;i++)
       {
         int free_entry = IQ->free_entry(); //TODO write a funcion to return an empty place in issue queue
-        cout<<"free entry "<<free_entry<<endl;
-        cout<<IQ<<endl;
+        //cout<<"free entry "<<free_entry<<endl;
+        //cout<<IQ<<endl;
         if(free_entry != (-1)){
         cout<<"DI check"<<endl;
         IQ->IQ_entry[free_entry].valid = 1;
@@ -464,7 +471,7 @@ void Execute()
       int dr = exc_lst[i].instr->dr; //this is the destination that will complete this cycle.
       int dr_org = exc_lst[i].instr->dr_org; //this is the original  destination that will complete this cycle.
       cout<<"Exc "<<hex<<exc_lst[i].instr->pc<<dec<<endl;
-      print_instr(exc_lst[i].instr);
+      //print_instr(exc_lst[i].instr);
       for(int k=0; k<IQ_size; k++)
       {
       //  cout<<"check 1"<<endl;
@@ -498,8 +505,8 @@ void Execute()
         {
           if((DI[k].sr1 == dr)) /*&&(dr != -1))*/ { DI[k].rdy_rs1 = 1; cout<<"ready set in decode bundle sr1 "<<dr<<endl;}
           if((DI[k].sr2 == dr)) /*&&(dr != -1))*/ { DI[k].rdy_rs2 = 1; cout<<"ready set in decode bundle sr2 "<<dr<<endl;}
-          cout<<"decode constents in execute stage"<<endl;
-          print_instr(&DI[k]);
+         // cout<<"decode constents in execute stage"<<endl;
+         // print_instr(&DI[k]);
         }
       }
       if(RR != NULL)
@@ -508,8 +515,8 @@ void Execute()
         {
           if((RR[k].sr1 == dr))/*&&(dr != -1))*/ { RR[k].rdy_rs1 = 1; cout<<"ready set in regread bundle sr1"<<endl; }
           if((RR[k].sr2 == dr))/*&&(dr != -1))*/ { RR[k].rdy_rs2 = 1; cout<<"ready set in regread bundle sr2"<<endl; }
-          cout<<"RR  constents in execute stage"<<endl;
-          print_instr(&RR[k]);
+          //cout<<"RR  constents in execute stage"<<endl;
+         // print_instr(&RR[k]);
         }
       }
      // if(RN != NULL)
@@ -569,7 +576,7 @@ void Writeback()
         rob.rob_entry[WB[i].instr->rob_tag].rdy =1;
         cout<<"rob tag "<<WB[i].instr->rob_tag<<" rob rdy "<<rob.rob_entry[WB[i].instr->rob_tag].rdy<<endl;
         cout<<"writeback instruction"<<endl;
-        print_instr(WB[i].instr);
+        //print_instr(WB[i].instr);
         cout<<" ready rob tag "<<WB[i].instr->rob_tag<<" "<<rob.rob_entry[WB[i].instr->rob_tag].rdy<<endl;
         WB[i].valid = 0;
         WB[i].instr->retire_entry = cycle_count;
@@ -582,7 +589,7 @@ void Writeback()
          // cout<<"wb instruction"<<endl;
          // print_instr(WB[i].instr);
           cout<<"RN  constents in execute stage"<<endl;
-          print_instr(&RR[k]);
+          //print_instr(&RR[k]);
         }
       }
       }
@@ -615,7 +622,7 @@ void Retire()
       // rob.rob_entry[k].instr->retire_entry = cycle_count;
       // rob.rob_entry[k].valid = 0;
        cout<<"retired insruction "<<rob.rob_entry[k].instr->age<<" rob head "<<rob.head<<endl;
-       for(int i =0; i<IQ_size; i++)
+       for(int i =0; i<67; i++)
        {
          if(rmt[i].tag == k) rmt[i].valid = 0;
        }

@@ -273,14 +273,14 @@ class ROB_table {
     }
     void incr_tail()
     {
-      if(tail<size) tail++;
-      else if (tail == size) tail = 0;
+      if(tail<size-1) tail++;
+      else if (tail == size-1 ) tail = 0;
       if(tail == head) cout<<"rob is full by tail increment"<<endl;
     }
     void incr_head()
     {
-      if(head<size) head++;
-      else if (head == size) head = 0;
+      if(head<size-1) head++;
+      else if (head == size-1 ) head = 0;
     }
 
 };

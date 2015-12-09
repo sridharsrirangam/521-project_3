@@ -471,7 +471,7 @@ void Execute()
       int dr = exc_lst[i].instr->dr; //this is the destination that will complete this cycle.
       int dr_org = exc_lst[i].instr->dr_org; //this is the original  destination that will complete this cycle.
       cout<<"Exc "<<hex<<exc_lst[i].instr->pc<<dec<<endl;
-      //print_instr(exc_lst[i].instr);
+      print_instr(exc_lst[i].instr);
       for(int k=0; k<IQ_size; k++)
       {
       //  cout<<"check 1"<<endl;
@@ -485,7 +485,7 @@ void Execute()
           {
        // cout<<"check 3"<<endl;
             IQ->IQ_entry[k].instr->rdy_rs1 = 1;
-            cout<<"execute sr1 wakeup"<<endl;
+            //cout<<"execute sr1 wakeup"<<endl;
             //print_instr(IQ->IQ_entry[k].instr);
           }
           if((IQ->IQ_entry[k].instr->sr2 == dr))//&&(dr != -1))
@@ -503,8 +503,8 @@ void Execute()
       {
         for(int k=0;k<width;k++)
         {
-          if((DI[k].sr1 == dr)) /*&&(dr != -1))*/ { DI[k].rdy_rs1 = 1; cout<<"ready set in decode bundle sr1 "<<dr<<endl;}
-          if((DI[k].sr2 == dr)) /*&&(dr != -1))*/ { DI[k].rdy_rs2 = 1; cout<<"ready set in decode bundle sr2 "<<dr<<endl;}
+          if((DI[k].sr1 == dr)) /*&&(dr != -1))*/ { DI[k].rdy_rs1 = 1;} //cout<<"ready set in decode bundle sr1 "<<dr<<endl;}
+          if((DI[k].sr2 == dr)) /*&&(dr != -1))*/ { DI[k].rdy_rs2 = 1;}// cout<<"ready set in decode bundle sr2 "<<dr<<endl;}
          // cout<<"decode constents in execute stage"<<endl;
          // print_instr(&DI[k]);
         }
@@ -513,8 +513,8 @@ void Execute()
       {
         for(int k=0;k<width;k++)
         {
-          if((RR[k].sr1 == dr))/*&&(dr != -1))*/ { RR[k].rdy_rs1 = 1; cout<<"ready set in regread bundle sr1"<<endl; }
-          if((RR[k].sr2 == dr))/*&&(dr != -1))*/ { RR[k].rdy_rs2 = 1; cout<<"ready set in regread bundle sr2"<<endl; }
+          if((RR[k].sr1 == dr))/*&&(dr != -1))*/ { RR[k].rdy_rs1 = 1; }//cout<<"ready set in regread bundle sr1"<<endl; }
+          if((RR[k].sr2 == dr))/*&&(dr != -1))*/ { RR[k].rdy_rs2 = 1; }//cout<<"ready set in regread bundle sr2"<<endl; }
           //cout<<"RR  constents in execute stage"<<endl;
          // print_instr(&RR[k]);
         }
@@ -588,7 +588,7 @@ void Writeback()
             if((RR[k].sr2 == WB[i].instr->dr))/*&&(dr != -1))*/ { RR[k].rdy_rs2 = 1; cout<<"ready set in rename bundle sr2"<<endl; }
          // cout<<"wb instruction"<<endl;
          // print_instr(WB[i].instr);
-          cout<<"RN  constents in execute stage"<<endl;
+          //cout<<"RN  constents in execute stage"<<endl;
           //print_instr(&RR[k]);
         }
       }
@@ -604,6 +604,7 @@ void Writeback()
 
 void Retire()
 {
+  int canGo = 1;
   cout<<"rob at retire: head "<<rob.head<<endl;
  // if((rob.head == 0)&&(rob.tail == 1)) rob.head = 1; //to handle initial condition
   for(int i = 0;i<ROB_size;i++)
@@ -613,9 +614,11 @@ void Retire()
  // for(int i=0;i<width;i++)
  // {
     int head = rob.head;
+    if((ROB_size - head) > width)
+    {
     for(int k=head;k<(head+width);k++)
     {
-      cout<<"retire iter "<<k<<endl;
+      cout<<"retire iter 1 "<<k<<endl;
      if((rob.rob_entry[k].rdy == 0)){ cout<<"breaking bad "<<rob.rob_entry[k].rdy<<endl; print_instr(rob.rob_entry[k].instr); break;} //&&(!(rob.head == 0)&&(rob.tail == 1))) break;
      if(rob.rob_entry[k].rdy == 1)
      {
@@ -641,7 +644,69 @@ void Retire()
   
      }
     }
- // }
+    }
+    if((ROB_size - head) <= width)
+    {
+    for(int k=head;k<ROB_size;k++)
+    {
+      cout<<"retire iter 2 "<<k<<endl;
+     if((rob.rob_entry[k].rdy == 0)){ cout<<"breaking bad "<<rob.rob_entry[k].rdy<<endl; print_instr(rob.rob_entry[k].instr);canGo = 0; break;} //&&(!(rob.head == 0)&&(rob.tail == 1))) break;
+     if(rob.rob_entry[k].rdy == 1)
+     {
+      // rob.rob_entry[k].instr->retire_entry = cycle_count;
+      // rob.rob_entry[k].valid = 0;
+       cout<<"retired insruction "<<rob.rob_entry[k].instr->age<<" rob head "<<rob.head<<endl;
+       for(int i =0; i<67; i++)
+       {
+         if(rmt[i].tag == k) rmt[i].valid = 0;
+       }
+       rob.incr_head();
+       myfile<<rob.rob_entry[k].instr->age<<" "<<"fu{"<<rob.rob_entry[k].instr->opcode<<"} src{"<<rob.rob_entry[k].instr->sr1_org<<","<<rob.rob_entry[k].instr->sr2_org<<"} dst{"
+         <<rob.rob_entry[k].instr->dr_org<<"} FE{"<<rob.rob_entry[k].instr->fetch_entry<<","
+         <<(rob.rob_entry[k].instr->decode_entry - rob.rob_entry[k].instr->fetch_entry)
+         <<"} DE{"<<rob.rob_entry[k].instr->decode_entry<<","<<(rob.rob_entry[k].instr->rename_entry - rob.rob_entry[k].instr->decode_entry)<<"} RN{"
+         <<rob.rob_entry[k].instr->rename_entry<<","<<(rob.rob_entry[k].instr->regread_entry - rob.rob_entry[k].instr->rename_entry)<<"} RR{"
+         <<rob.rob_entry[k].instr->regread_entry<<","<<(rob.rob_entry[k].instr->dispatch_entry - rob.rob_entry[k].instr->regread_entry)<<"} DI{"
+         <<rob.rob_entry[k].instr->dispatch_entry<<","<<(rob.rob_entry[k].instr->issue_entry - rob.rob_entry[k].instr->dispatch_entry)<<"} IS{"
+         <<rob.rob_entry[k].instr->issue_entry<<","<<(rob.rob_entry[k].instr->execute_entry - rob.rob_entry[k].instr->issue_entry)<<"} EX{"
+         <<rob.rob_entry[k].instr->execute_entry<<","<<(rob.rob_entry[k].instr->writeback_entry - rob.rob_entry[k].instr->execute_entry)<<"} WB{"
+         <<rob.rob_entry[k].instr->writeback_entry<<","<<(rob.rob_entry[k].instr->retire_entry - rob.rob_entry[k].instr->writeback_entry)<<"} RT{"
+         <<rob.rob_entry[k].instr->retire_entry<<","<<(cycle_count - rob.rob_entry[k].instr->retire_entry)<<"}"<<endl;
+       }
+    }
+    if(canGo == 1)
+    {
+    for(int k=0;k<(width -( ROB_size - head));k++)
+    {
+      cout<<"retire iter 3 "<<k<<endl;
+     if((rob.rob_entry[k].rdy == 0)){ cout<<"breaking bad "<<rob.rob_entry[k].rdy<<endl; print_instr(rob.rob_entry[k].instr); break;} //&&(!(rob.head == 0)&&(rob.tail == 1))) break;
+     if(rob.rob_entry[k].rdy == 1)
+     {
+      // rob.rob_entry[k].instr->retire_entry = cycle_count;
+      // rob.rob_entry[k].valid = 0;
+       cout<<"retired insruction "<<rob.rob_entry[k].instr->age<<" rob head "<<rob.head<<endl;
+       for(int i =0; i<67; i++)
+       {
+         if(rmt[i].tag == k) rmt[i].valid = 0;
+       }
+       rob.incr_head();
+       myfile<<rob.rob_entry[k].instr->age<<" "<<"fu{"<<rob.rob_entry[k].instr->opcode<<"} src{"<<rob.rob_entry[k].instr->sr1_org<<","<<rob.rob_entry[k].instr->sr2_org<<"} dst{"
+         <<rob.rob_entry[k].instr->dr_org<<"} FE{"<<rob.rob_entry[k].instr->fetch_entry<<","
+         <<(rob.rob_entry[k].instr->decode_entry - rob.rob_entry[k].instr->fetch_entry)
+         <<"} DE{"<<rob.rob_entry[k].instr->decode_entry<<","<<(rob.rob_entry[k].instr->rename_entry - rob.rob_entry[k].instr->decode_entry)<<"} RN{"
+         <<rob.rob_entry[k].instr->rename_entry<<","<<(rob.rob_entry[k].instr->regread_entry - rob.rob_entry[k].instr->rename_entry)<<"} RR{"
+         <<rob.rob_entry[k].instr->regread_entry<<","<<(rob.rob_entry[k].instr->dispatch_entry - rob.rob_entry[k].instr->regread_entry)<<"} DI{"
+         <<rob.rob_entry[k].instr->dispatch_entry<<","<<(rob.rob_entry[k].instr->issue_entry - rob.rob_entry[k].instr->dispatch_entry)<<"} IS{"
+         <<rob.rob_entry[k].instr->issue_entry<<","<<(rob.rob_entry[k].instr->execute_entry - rob.rob_entry[k].instr->issue_entry)<<"} EX{"
+         <<rob.rob_entry[k].instr->execute_entry<<","<<(rob.rob_entry[k].instr->writeback_entry - rob.rob_entry[k].instr->execute_entry)<<"} WB{"
+         <<rob.rob_entry[k].instr->writeback_entry<<","<<(rob.rob_entry[k].instr->retire_entry - rob.rob_entry[k].instr->writeback_entry)<<"} RT{"
+         <<rob.rob_entry[k].instr->retire_entry<<","<<(cycle_count - rob.rob_entry[k].instr->retire_entry)<<"}"<<endl;
+       }
+    }
+    }
+    }
+
+
 
 
        // cout<<"retire abc "<<&IQ->IQ_entry[0]<<endl;

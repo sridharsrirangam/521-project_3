@@ -149,7 +149,7 @@ class ISSUE_queue{
       {
        // if(IQ_entry[i].valid == 0) return i;
         if(IQ_V[i] == 0) {
-        cout<<"abc "<<i<<endl;
+        //cout<<"abc "<<i<<endl;
         return i;
         }
       }
@@ -164,7 +164,7 @@ class ISSUE_queue{
        // if(IQ_entry[i].valid == 0) count++;
         if(IQ_V[i] == 0) count++;
       }
-      cout<<"issue count "<<count<<endl;
+      //cout<<"issue count "<<count<<endl;
       return count;
     }
 };
@@ -241,7 +241,7 @@ class ROB_table {
     //  }
     int is_ROB_free()
     {
-      cout<<"rob stats "<<" "<<head<<" "<<tail<<endl; 
+      //cout<<"rob stats "<<" "<<head<<" "<<tail<<endl; 
       int count = 0;
       if(tail>head)
       {
@@ -263,21 +263,21 @@ class ROB_table {
       }
       if((head == 0)&&(tail == 0) &&(rob_first_entry == 0))
       {
-        cout<<"Entered first entry"<<endl;
+        //cout<<"Entered first entry"<<endl;
         rob_first_entry = 1;
         count = size;
 
       }
 
     
-      if(count<4) cout<<"rob full width is "<<width<<endl;
+      //if(count<4) cout<<"rob full width is "<<width<<endl;
       return count;
     }
     void incr_tail()
     {
       if(tail<size-1) tail++;
       else if (tail == size-1 ) tail = 0;
-      if(tail == head) cout<<"rob is full by tail increment"<<endl;
+      //if(tail == head) cout<<"rob is full by tail increment"<<endl;
     }
     void incr_head()
     {

@@ -29,8 +29,8 @@ unsigned int IQ_size;
 unsigned int width;
 FILE *pFile;
 
-ofstream myfile;
-ofstream fetchfile;
+//ofstream myfile;
+//ofstream fetchfile;
 
 
 #include "class_definitions.h"
@@ -96,10 +96,10 @@ int main(int argc, char *argv[])
   IQ_size = atoi(argv[2]);
   width = atoi(argv[3]);
   fname = argv[4];
-  cout<<"ROB size: "<<ROB_size<<endl;
-  cout<<"IQ size: "<<IQ_size<<endl;
-  cout<<"WIDTH: "<<width<<endl;
-  cout<<"Trace file: "<<fname<<endl;
+  //cout<<"ROB size: "<<ROB_size<<endl;
+  //cout<<"IQ size: "<<IQ_size<<endl;
+  //cout<<"WIDTH: "<<width<<endl;
+  //cout<<"Trace file: "<<fname<<endl;
 
   pFile = fopen(fname,"r");
   if(pFile == 0)
@@ -118,13 +118,13 @@ int main(int argc, char *argv[])
   exc_lst = new execution_list[5*width];
   WB = new Writeback_list[5*width];
 
-  myfile.open("scope_check.txt");
-  fetchfile.open("check_fetch.txt");
+  //myfile.open("scope_check.txt");
+  //fetchfile.open("check_fetch.txt");
 
  //while(fscanf(pFile,"%s %d %d %d %d",&pc_str,&opcode,&dr,&sr1,&sr2))
   do
   {
-    cout<<"ready states "<<DE_empty<<" "<<RN_empty<<" "<<RR_empty<<" "<<DI_empty<<endl;
+    //cout<<"ready states "<<DE_empty<<" "<<RN_empty<<" "<<RR_empty<<" "<<DI_empty<<endl;
     //if(feof(pFile))break;
     total_reads++;
     pc = strtoul(pc_str,0,16);
@@ -143,22 +143,22 @@ int main(int argc, char *argv[])
   //for(int i=0;i<67;i++) //cout<<"rmt["<<i<<"] = "<<rmt[i].valid<<" "<<rmt[i].tag<<endl;
  // for(int i=0;i<IQ_size;i++) cout<<"IQ["<<i<<"] = "<<IQ->IQ_entry[i].valid<<" "<<hex<<IQ->IQ_entry[i].instr->pc<<" "<<"age "<<IQ->IQ_entry[i].instr->age<<endl;
  // cout<<"total reads: "<<dec<<total_reads<<endl;
-  myfile<<"# === Simulator Command ========="<<endl;
-  myfile<<"# ./sim "<<ROB_size<<" "<<IQ_size<<" "<<width<<" "<<fname<<endl;
-  myfile<<"# === Processor Configuration ==="<<endl;
-  myfile<<"# ROB_SIZE =  "<<ROB_size<<endl;
-  myfile<<"# IQ_SIZE = "<<IQ_size<<endl;
-  myfile<<"# WIDTH =  "<<width<<endl;
-  myfile<<"# === Simulation Results ======== "<<endl;
-  myfile<<"# Dynamic Instruction Count = "<<fetch_age_cycle<<endl;
-  myfile<<"# Cycles = "<<cycle_count<<endl;
-  cout.precision(4);
+  cout<<"# === Simulator Command ========="<<endl;
+  cout<<"# ./sim "<<ROB_size<<" "<<IQ_size<<" "<<width<<" "<<fname<<endl;
+  cout<<"# === Processor Configuration ==="<<endl;
+  cout<<"# ROB_SIZE =  "<<ROB_size<<endl;
+  cout<<"# IQ_SIZE = "<<IQ_size<<endl;
+  cout<<"# WIDTH =  "<<width<<endl;
+  cout<<"# === Simulation Results ======== "<<endl;
+  cout<<"# Dynamic Instruction Count = "<<fetch_age_cycle<<endl;
+  cout<<"# Cycles = "<<cycle_count<<endl;
+  cout.precision(2);
   cout.setf(ios::fixed,ios::floatfield);
-  myfile<<"# Instructions Per Cycle (IPC) = "<<(float)(fetch_age_cycle)/cycle_count<<endl;
+  cout<<"# Instructions Per Cycle (IPC) = "<<(float)(fetch_age_cycle)/cycle_count<<endl;
   cout.unsetf(ios::floatfield);
 
-  myfile.close();
-  fetchfile.close();
+  //myfile.close();
+  //fetchfile.close();
 }//end of main
 
 bool Advance_cycle()
@@ -173,11 +173,11 @@ bool Advance_cycle()
   //    return false;
   //  }
   //}
-  cout<<"retire age cycle: "<<retire_age_cycle<<endl;
-  cout<<"fetch age cycle: "<<fetch_age_cycle<<endl;
+  //cout<<"retire age cycle: "<<retire_age_cycle<<endl;
+  //cout<<"fetch age cycle: "<<fetch_age_cycle<<endl;
   if ((retire_age_cycle == fetch_age_cycle)&&(fetch_age_cycle != 0))  return false;
   cycle_count++;
-  cout<<"CYCLE COUNT: "<<cycle_count<<endl;
+  //cout<<"CYCLE COUNT: "<<cycle_count<<endl;
   return true;
  }
 
@@ -205,18 +205,18 @@ void Fetch()
   {
     i_b = new instruction[width];
     //i_b.instruction_bundle_c(width);
-  fetchfile<<"gap"<<endl;
+  //fetchfile<<"gap"<<endl;
    for(int i=0;i<width;i++)
    {
     fscanf(pFile,"%s %d %d %d %d",&pc_str,&opcode,&dr,&sr1,&sr2);
     if(feof(pFile)) 
     { 
-      cout<<"end inter "<<i<<endl; 
+      //cout<<"end inter "<<i<<endl; 
       DE_empty= 1;
       if(i !=0)
       {
         i_b[i-1].lastInstr = 1;
-        print_instr(&i_b[i-1]);
+        //print_instr(&i_b[i-1]);
       }
      // numInstr = i;
       /* DE = NULL;*/ 
@@ -234,7 +234,7 @@ void Fetch()
     i_b[i].rdy_rs1 = 0;
     i_b[i].rdy_rs2 = 0;
     fetch_age_cycle++;
-    fetchfile<<" instruction "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<i_b[i].opcode<<" "<<i_b[i].dr<<" "<<i_b[i].sr1_org<<" "<<i_b[i].sr2_org<<" age "<<i_b[i].age<<" last instr: "<<i_b[i].lastInstr<<endl;
+    //fetchfile<<" instruction "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<i_b[i].opcode<<" "<<i_b[i].dr<<" "<<i_b[i].sr1_org<<" "<<i_b[i].sr2_org<<" age "<<i_b[i].age<<" last instr: "<<i_b[i].lastInstr<<endl;
     DE = i_b;
     i_b[i].fetch_entry = cycle_count-1;
     i_b[i].decode_entry = cycle_count;
@@ -256,7 +256,7 @@ void Decode()//maybe send bundle pointer to decode from fetch
     {
       //fetchfile<<"ready states at decode"<<DE_empty<<" "<<RN_empty<<" "<<RR_empty<<" "<<DI_empty<<endl;
       for(int i =0;i<width;i++) { DE[i].rename_entry = cycle_count;} 
-      for(int i=0;i<width;i++) fetchfile<<"decode  instruction "<<i<<" "<<hex<<DE[i].pc<<dec<<" "<<DE[i].opcode<<" "<<DE[i].dr<<" "<<DE[i].sr1_org<<" "<<DE[i].sr2_org<<" age "<<DE[i].age<<endl;
+      //for(int i=0;i<width;i++) fetchfile<<"decode  instruction "<<i<<" "<<hex<<DE[i].pc<<dec<<" "<<DE[i].opcode<<" "<<DE[i].dr<<" "<<DE[i].sr1_org<<" "<<DE[i].sr2_org<<" age "<<DE[i].age<<endl;
       DE_empty = 0;
       //cout<<"Decode check 2"<<endl;
       RN = DE;
@@ -282,7 +282,7 @@ void Rename()
     if((rob.is_ROB_free() >= width)&&(RR_empty != 1))
     {
       RN_empty = 0;
-      cout<<"Rename check 3"<<endl;
+      //cout<<"Rename check 3"<<endl;
       for(int i=0;i<width;i++)
       {
    //     cout<<"rename abc 2 "<<&IQ->IQ_entry[0]<<endl;
@@ -357,7 +357,7 @@ void RegRead()
       if(DI_empty != 1)
       {
       RR_empty = 0;
-      cout<<"RR check"<<endl;
+      //cout<<"RR check"<<endl;
       for(int i=0; i<width; i++)
       {
         RR[i].dispatch_entry = cycle_count;
@@ -374,7 +374,7 @@ void RegRead()
         {
           if(rob.rob_entry[RR[i].sr2].rdy == 1) RR[i].rdy_rs2 = 1;
         }
-        cout<<"readread stage"<<endl;
+        //cout<<"readread stage"<<endl;
         //print_instr(&RR[i]);
 
       }
@@ -399,7 +399,7 @@ void Dispatch()
       if(DI[i].lastInstr == 1)
       {
         Icount = i+1;
-        cout<<"icount "<<Icount<<endl;
+        //cout<<"icount "<<Icount<<endl;
         Ilast = 1;
         width_d = Icount;
         break;
@@ -407,7 +407,7 @@ void Dispatch()
     }
     if((IQ->is_IQ_empty() >= width)||((Ilast == 1)&&(IQ->is_IQ_empty() >= Icount)))  // 1 if there is place
     {
-      cout<<"Dispatch check"<<endl;
+      //cout<<"Dispatch check"<<endl;
       DI_empty = 0;
       for(int i=0;i<width_d;i++)
       {
@@ -415,7 +415,7 @@ void Dispatch()
         //cout<<"free entry "<<free_entry<<endl;
         //cout<<IQ<<endl;
         if(free_entry != (-1)){
-        cout<<"DI check"<<endl;
+        //cout<<"DI check"<<endl;
         IQ->IQ_entry[free_entry].valid = 1;
         IQ->IQ_entry[free_entry].v = 1;
         //IQ->IQ_entry[free_entry].dst_tag = DI.instr_bundle[i].dr;
@@ -435,7 +435,7 @@ void Dispatch()
     else 
     {
       DI_empty = 1;
-      cout<<"DI empty set"<<endl;
+      //cout<<"DI empty set"<<endl;
     }
   }
     //else DI_empty = 1;
@@ -471,7 +471,7 @@ void Issue()
               { 
                 min = IQ->IQ_entry[j].instr->age; 
                 index = j;
-                cout<<"in min "<<min<<" "<<index<<" prev "<<prev_index<<endl;
+                //cout<<"in min "<<min<<" "<<index<<" prev "<<prev_index<<endl;
                }
              }
           }
@@ -495,7 +495,7 @@ void Issue()
              }
              exc_lst[free_entry].instr =  IQ->IQ_entry[index].instr;
             // if(IQ->IQ_entry[0].instr->pc == 0x2b663c) cout<<"ALERT"<<" index "<<index[i]<<endl;
-             cout<<hex<<exc_lst[free_entry].instr->pc<<dec<<endl;
+             //cout<<hex<<exc_lst[free_entry].instr->pc<<dec<<endl;
              exc_lst[free_entry].valid = 1;
              if(IQ->IQ_entry[index].instr->opcode == 0) exc_lst[free_entry].cycle_to_complete = 1;
              if(IQ->IQ_entry[index].instr->opcode == 1) exc_lst[free_entry].cycle_to_complete = 2;
@@ -506,13 +506,13 @@ void Issue()
        }
 
   }
-      for(int a=0;a<IQ_size;a++) 
-          {
-             if(IQ->IQ_entry[a].instr != NULL) 
-              cout<<"issue queue "<<a<<" "<<hex<<IQ->IQ_entry[a].instr->pc<<dec 
-              <<" "<<IQ->IQ_entry[a].instr->rdy_rs1<<" "<<IQ->IQ_entry[a].instr->rdy_rs2<<" age: "<<IQ->IQ_entry[a].instr->age <<" valid "<<IQ->IQ_entry[a].valid<<" "<<IQ->IQ_entry[a].v<<" test "<<IQ->IQ_V[a]<<endl;
+     // for(int a=0;a<IQ_size;a++) 
+         // {
+           //  if(IQ->IQ_entry[a].instr != NULL) 
+              //cout<<"issue queue "<<a<<" "<<hex<<IQ->IQ_entry[a].instr->pc<<dec 
+             // <<" "<<IQ->IQ_entry[a].instr->rdy_rs1<<" "<<IQ->IQ_entry[a].instr->rdy_rs2<<" age: "<<IQ->IQ_entry[a].instr->age <<" valid "<<IQ->IQ_entry[a].valid<<" "<<IQ->IQ_entry[a].v<<" test "<<IQ->IQ_V[a]<<endl;
         //  print_instr(IQ->IQ_entry[a].instr);
-          }
+        //  }
        // cout<<"issue abc "<<&IQ->IQ_entry[0]<<endl;
 }
 
@@ -525,11 +525,11 @@ void Execute()
     //cout<<" EXECUTE check"<<endl;
     if((exc_lst[i].valid == 1)&&(exc_lst[i].cycle_to_complete == 1)) //instructions that are finishing this cycle
     {
-      cout<<" EXECUTE check 1"<<endl;
+      //cout<<" EXECUTE check 1"<<endl;
       int dr = exc_lst[i].instr->dr; //this is the destination that will complete this cycle.
       int dr_org = exc_lst[i].instr->dr_org; //this is the original  destination that will complete this cycle.
-      cout<<"Exc "<<hex<<exc_lst[i].instr->pc<<dec<<endl;
-      print_instr(exc_lst[i].instr);
+      //cout<<"Exc "<<hex<<exc_lst[i].instr->pc<<dec<<endl;
+      //print_instr(exc_lst[i].instr);
       for(int k=0; k<IQ_size; k++)
       {
       //  cout<<"check 1"<<endl;
@@ -552,7 +552,7 @@ void Execute()
             IQ->IQ_entry[k].instr->rdy_rs2 = 1;
           }
         }
-        else cout<<"IQ instr null"<<endl;
+        //else cout<<"IQ instr null"<<endl;
        // else cout<<"instr is null"<<endl;
        // cout<<"check 5"<<endl;
       }
@@ -607,13 +607,13 @@ void Execute()
   //go_exec = 0;
   go_WB = 1;
  }
-  cout<<" EXECUTE check 2"<<endl;
+  //cout<<" EXECUTE check 2"<<endl;
   for(int i = 0;i<5*width;i++)
   {
     if (exc_lst[i].valid == 1)
     {
       exc_lst[i].cycle_to_complete--;
-     cout << "c2c: " << exc_lst[i].cycle_to_complete<<" "<<hex<<exc_lst[i].instr->pc <<dec<< " " << endl;
+     //cout << "c2c: " << exc_lst[i].cycle_to_complete<<" "<<hex<<exc_lst[i].instr->pc <<dec<< " " << endl;
     }
   }
 
@@ -626,24 +626,24 @@ void Writeback()
 {
   if(go_WB == 1)
   {
-    cout<<"writeback check"<<endl;
+    //cout<<"writeback check"<<endl;
     for(int i=0; i<5*width;i++)
     {
       if(WB[i].valid == 1)
       {
         rob.rob_entry[WB[i].instr->rob_tag].rdy =1;
-        cout<<"rob tag "<<WB[i].instr->rob_tag<<" rob rdy "<<rob.rob_entry[WB[i].instr->rob_tag].rdy<<endl;
-        cout<<"writeback instruction"<<endl;
+        //cout<<"rob tag "<<WB[i].instr->rob_tag<<" rob rdy "<<rob.rob_entry[WB[i].instr->rob_tag].rdy<<endl;
+        //cout<<"writeback instruction"<<endl;
         //print_instr(WB[i].instr);
-        cout<<" ready rob tag "<<WB[i].instr->rob_tag<<" "<<rob.rob_entry[WB[i].instr->rob_tag].rdy<<endl;
+        //cout<<" ready rob tag "<<WB[i].instr->rob_tag<<" "<<rob.rob_entry[WB[i].instr->rob_tag].rdy<<endl;
         WB[i].valid = 0;
         WB[i].instr->retire_entry = cycle_count;
       if(RR != NULL)
       {
         for(int k=0;k<width;k++)
         {
-           if((RR[k].sr1 == WB[i].instr->dr))/*&&(dr != -1))*/ { RR[k].rdy_rs1 = 1; cout<<"ready set in rename bundle sr1"<<endl; }
-            if((RR[k].sr2 == WB[i].instr->dr))/*&&(dr != -1))*/ { RR[k].rdy_rs2 = 1; cout<<"ready set in rename bundle sr2"<<endl; }
+           if((RR[k].sr1 == WB[i].instr->dr))/*&&(dr != -1))*/ { RR[k].rdy_rs1 = 1; }//cout<<"ready set in rename bundle sr1"<<endl; }
+            if((RR[k].sr2 == WB[i].instr->dr))/*&&(dr != -1))*/ { RR[k].rdy_rs2 = 1; }//cout<<"ready set in rename bundle sr2"<<endl; }
          // cout<<"wb instruction"<<endl;
          // print_instr(WB[i].instr);
           //cout<<"RN  constents in execute stage"<<endl;
@@ -664,7 +664,7 @@ void Retire()
 {
   int canGo = 1;
   int prev_age  = 0;
-  cout<<"rob at retire: head "<<rob.head<<endl;
+  //cout<<"rob at retire: head "<<rob.head<<endl;
  // if((rob.head == 0)&&(rob.tail == 1)) rob.head = 1; //to handle initial condition
   for(int i = 0;i<ROB_size;i++)
   {
@@ -677,21 +677,21 @@ void Retire()
     {
     for(int k=head;k<(head+width);k++)
     {
-      cout<<"retire iter 1 "<<k<<endl;
-     if((rob.rob_entry[k].rdy == 0)){ cout<<"breaking bad "<<rob.rob_entry[k].rdy<<endl; print_instr(rob.rob_entry[k].instr); break;} //&&(!(rob.head == 0)&&(rob.tail == 1))) break;
+      //cout<<"retire iter 1 "<<k<<endl;
+     if((rob.rob_entry[k].rdy == 0)){ /*cout<<"breaking bad "<<rob.rob_entry[k].rdy<<endl; print_instr(rob.rob_entry[k].instr);*/ break;} //&&(!(rob.head == 0)&&(rob.tail == 1))) break;
      if(rob.rob_entry[k].rdy == 1)
      {
        if((rob.rob_entry[k].instr->age < prev_age)&&(prev_age !=0)) break;
       // rob.rob_entry[k].instr->retire_entry = cycle_count;
       // rob.rob_entry[k].valid = 0;
-       cout<<"retired insruction "<<rob.rob_entry[k].instr->age<<" rob head "<<rob.head<<endl;
+       //cout<<"retired insruction "<<rob.rob_entry[k].instr->age<<" rob head "<<rob.head<<endl;
        for(int i =0; i<67; i++)
        {
          if(rmt[i].tag == k) rmt[i].valid = 0;
        }
        rob.incr_head();
        retire_age_cycle++;
-       myfile<<rob.rob_entry[k].instr->age<<" "<<"fu{"<<rob.rob_entry[k].instr->opcode<<"} src{"<<rob.rob_entry[k].instr->sr1_org<<","<<rob.rob_entry[k].instr->sr2_org<<"} dst{"
+       cout<<rob.rob_entry[k].instr->age<<" "<<"fu{"<<rob.rob_entry[k].instr->opcode<<"} src{"<<rob.rob_entry[k].instr->sr1_org<<","<<rob.rob_entry[k].instr->sr2_org<<"} dst{"
          <<rob.rob_entry[k].instr->dr_org<<"} FE{"<<rob.rob_entry[k].instr->fetch_entry<<","
          <<(rob.rob_entry[k].instr->decode_entry - rob.rob_entry[k].instr->fetch_entry)
          <<"} DE{"<<rob.rob_entry[k].instr->decode_entry<<","<<(rob.rob_entry[k].instr->rename_entry - rob.rob_entry[k].instr->decode_entry)<<"} RN{"
@@ -711,21 +711,21 @@ void Retire()
     {
     for(int k=head;k<ROB_size;k++)
     {
-      cout<<"retire iter 2 "<<k<<endl;
-     if((rob.rob_entry[k].rdy == 0)){ cout<<"breaking bad "<<rob.rob_entry[k].rdy<<endl; print_instr(rob.rob_entry[k].instr);canGo = 0; break;} //&&(!(rob.head == 0)&&(rob.tail == 1))) break;
+      //cout<<"retire iter 2 "<<k<<endl;
+     if((rob.rob_entry[k].rdy == 0)){ /*cout<<"breaking bad "<<rob.rob_entry[k].rdy<<endl; print_instr(rob.rob_entry[k].instr);*/ canGo = 0; break;} //&&(!(rob.head == 0)&&(rob.tail == 1))) break;
      if(rob.rob_entry[k].rdy == 1)
      {
        if(rob.rob_entry[k].instr->age < prev_age) break;
       // rob.rob_entry[k].instr->retire_entry = cycle_count;
       // rob.rob_entry[k].valid = 0;
-       cout<<"retired insruction "<<rob.rob_entry[k].instr->age<<" rob head "<<rob.head<<endl;
+       //cout<<"retired insruction "<<rob.rob_entry[k].instr->age<<" rob head "<<rob.head<<endl;
        for(int i =0; i<67; i++)
        {
          if(rmt[i].tag == k) rmt[i].valid = 0;
        }
        rob.incr_head();
        retire_age_cycle++;
-       myfile<<rob.rob_entry[k].instr->age<<" "<<"fu{"<<rob.rob_entry[k].instr->opcode<<"} src{"<<rob.rob_entry[k].instr->sr1_org<<","<<rob.rob_entry[k].instr->sr2_org<<"} dst{"
+       cout<<rob.rob_entry[k].instr->age<<" "<<"fu{"<<rob.rob_entry[k].instr->opcode<<"} src{"<<rob.rob_entry[k].instr->sr1_org<<","<<rob.rob_entry[k].instr->sr2_org<<"} dst{"
          <<rob.rob_entry[k].instr->dr_org<<"} FE{"<<rob.rob_entry[k].instr->fetch_entry<<","
          <<(rob.rob_entry[k].instr->decode_entry - rob.rob_entry[k].instr->fetch_entry)
          <<"} DE{"<<rob.rob_entry[k].instr->decode_entry<<","<<(rob.rob_entry[k].instr->rename_entry - rob.rob_entry[k].instr->decode_entry)<<"} RN{"
@@ -743,21 +743,21 @@ void Retire()
     {
     for(int k=0;k<(width -( ROB_size - head));k++)
     {
-      cout<<"retire iter 3 "<<k<<endl;
-     if((rob.rob_entry[k].rdy == 0)){ cout<<"breaking bad "<<rob.rob_entry[k].rdy<<endl; print_instr(rob.rob_entry[k].instr); break;} //&&(!(rob.head == 0)&&(rob.tail == 1))) break;
+      //cout<<"retire iter 3 "<<k<<endl;
+     if((rob.rob_entry[k].rdy == 0)){ /*cout<<"breaking bad "<<rob.rob_entry[k].rdy<<endl; print_instr(rob.rob_entry[k].instr);*/  break;} //&&(!(rob.head == 0)&&(rob.tail == 1))) break;
      if(rob.rob_entry[k].rdy == 1)
      {
        if(rob.rob_entry[k].instr->age < prev_age) break;
       // rob.rob_entry[k].instr->retire_entry = cycle_count;
       // rob.rob_entry[k].valid = 0;
-       cout<<"retired insruction "<<rob.rob_entry[k].instr->age<<" rob head "<<rob.head<<endl;
+       //cout<<"retired insruction "<<rob.rob_entry[k].instr->age<<" rob head "<<rob.head<<endl;
        for(int i =0; i<67; i++)
        {
          if(rmt[i].tag == k) rmt[i].valid = 0;
        }
        rob.incr_head();
        retire_age_cycle++;
-       myfile<<rob.rob_entry[k].instr->age<<" "<<"fu{"<<rob.rob_entry[k].instr->opcode<<"} src{"<<rob.rob_entry[k].instr->sr1_org<<","<<rob.rob_entry[k].instr->sr2_org<<"} dst{"
+       cout<<rob.rob_entry[k].instr->age<<" "<<"fu{"<<rob.rob_entry[k].instr->opcode<<"} src{"<<rob.rob_entry[k].instr->sr1_org<<","<<rob.rob_entry[k].instr->sr2_org<<"} dst{"
          <<rob.rob_entry[k].instr->dr_org<<"} FE{"<<rob.rob_entry[k].instr->fetch_entry<<","
          <<(rob.rob_entry[k].instr->decode_entry - rob.rob_entry[k].instr->fetch_entry)
          <<"} DE{"<<rob.rob_entry[k].instr->decode_entry<<","<<(rob.rob_entry[k].instr->rename_entry - rob.rob_entry[k].instr->decode_entry)<<"} RN{"

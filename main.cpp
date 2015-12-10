@@ -11,6 +11,7 @@
 using namespace std;
 
 int fetch_age_cycle=0;
+int retire_age_cycle=0;
 int cycle_count = 1;
 
 int go_exec = 0; //set by issue, indicates exc can go ahead
@@ -119,7 +120,7 @@ int main(int argc, char *argv[])
   do
   {
     cout<<"ready states "<<DE_empty<<" "<<RN_empty<<" "<<RR_empty<<" "<<DI_empty<<endl;
-    if(feof(pFile))break;
+    //if(feof(pFile))break;
     total_reads++;
     pc = strtoul(pc_str,0,16);
     // cout<<hex<<pc<<" "<<dec<<opcode<<" "<<dr<<" "<<sr1<<" "<<sr2<<endl;
@@ -134,17 +135,42 @@ int main(int argc, char *argv[])
     Fetch();
 
   }while(Advance_cycle());
-  for(int i=0;i<67;i++) //cout<<"rmt["<<i<<"] = "<<rmt[i].valid<<" "<<rmt[i].tag<<endl;
+  //for(int i=0;i<67;i++) //cout<<"rmt["<<i<<"] = "<<rmt[i].valid<<" "<<rmt[i].tag<<endl;
  // for(int i=0;i<IQ_size;i++) cout<<"IQ["<<i<<"] = "<<IQ->IQ_entry[i].valid<<" "<<hex<<IQ->IQ_entry[i].instr->pc<<" "<<"age "<<IQ->IQ_entry[i].instr->age<<endl;
-  cout<<"total reads: "<<dec<<total_reads<<endl;
+ // cout<<"total reads: "<<dec<<total_reads<<endl;
+  myfile<<"# === Simulator Command ========="<<endl;
+  myfile<<"# ./sim "<<ROB_size<<" "<<IQ_size<<" "<<width<<" "<<fname<<endl;
+  myfile<<"# === Processor Configuration ==="<<endl;
+  myfile<<"# ROB_SIZE =  "<<ROB_size<<endl;
+  myfile<<"# IQ_SIZE = "<<IQ_size<<endl;
+  myfile<<"# WIDTH =  "<<width<<endl;
+  myfile<<"# === Simulation Results ======== "<<endl;
+  myfile<<"# Dynamic Instruction Count = "<<fetch_age_cycle<<endl;
+  myfile<<"# Cycles = "<<cycle_count<<endl;
+  cout.precision(4);
+  cout.setf(ios::fixed,ios::floatfield);
+  myfile<<"# Instructions Per Cycle (IPC) = "<<(float)(fetch_age_cycle)/cycle_count<<endl;
+  cout.unsetf(ios::floatfield);
+
   myfile.close();
   fetchfile.close();
 }//end of main
 
 bool Advance_cycle()
 {
-  if(feof(pFile)) //& pipeline_empty
-      return false;
+  //if(feof(pFile)) //& pipeline_empty
+  //{
+  //    cout<<"last run stats: "<<fetch_age_cycle<<endl;
+  //  int i_c = IQ->is_IQ_empty();
+  //  if((i_c == IQ_size)&&( rob.head == rob.tail))
+  //  {
+  //    cout<<"last run stats: "<<fetch_age_cycle<<endl;
+  //    return false;
+  //  }
+  //}
+  cout<<"retire age cycle: "<<retire_age_cycle<<endl;
+  cout<<"fetch age cycle: "<<fetch_age_cycle<<endl;
+  if ((retire_age_cycle == fetch_age_cycle)&&(fetch_age_cycle != 0))  return false;
   cycle_count++;
   cout<<"CYCLE COUNT: "<<cycle_count<<endl;
   return true;
@@ -174,10 +200,11 @@ void Fetch()
   {
     i_b = new instruction[width];
     //i_b.instruction_bundle_c(width);
+  fetchfile<<"gap"<<endl;
    for(int i=0;i<width;i++)
    {
     fscanf(pFile,"%s %d %d %d %d",&pc_str,&opcode,&dr,&sr1,&sr2);
-    if(feof(pFile)) break;
+    if(feof(pFile)) { DE_empty= 1; DE = NULL; break;}
     i_b[i].pc = strtoul(pc_str,0,16);
     i_b[i].opcode = opcode;
     i_b[i].dr = dr;
@@ -190,7 +217,7 @@ void Fetch()
     i_b[i].rdy_rs1 = 0;
     i_b[i].rdy_rs2 = 0;
     fetch_age_cycle++;
-   // fetchfile<<" instruction "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<i_b[i].opcode<<" "<<i_b[i].dr<<" "<<i_b[i].sr1_org<<" "<<i_b[i].sr2_org<<" age "<<i_b[i].age<<endl;
+    fetchfile<<" instruction "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<i_b[i].opcode<<" "<<i_b[i].dr<<" "<<i_b[i].sr1_org<<" "<<i_b[i].sr2_org<<" age "<<i_b[i].age<<endl;
     DE = i_b;
     i_b[i].fetch_entry = cycle_count-1;
     i_b[i].decode_entry = cycle_count;
@@ -210,9 +237,9 @@ void Decode()//maybe send bundle pointer to decode from fetch
     //cout<<"Decode check 1"<<endl;
     if(RN_empty != 1) // 0 means empty
     {
-      fetchfile<<"ready states at decode"<<DE_empty<<" "<<RN_empty<<" "<<RR_empty<<" "<<DI_empty<<endl;
+      //fetchfile<<"ready states at decode"<<DE_empty<<" "<<RN_empty<<" "<<RR_empty<<" "<<DI_empty<<endl;
       for(int i =0;i<width;i++) { DE[i].rename_entry = cycle_count;} 
-      for(int i=0;i<width;i++) fetchfile<<" instruction "<<i<<" "<<hex<<DE[i].pc<<dec<<" "<<DE[i].opcode<<" "<<DE[i].dr<<" "<<DE[i].sr1_org<<" "<<DE[i].sr2_org<<" age "<<DE[i].age<<endl;
+     // for(int i=0;i<width;i++) fetchfile<<" instruction "<<i<<" "<<hex<<DE[i].pc<<dec<<" "<<DE[i].opcode<<" "<<DE[i].dr<<" "<<DE[i].sr1_org<<" "<<DE[i].sr2_org<<" age "<<DE[i].age<<endl;
       DE_empty = 0;
       //cout<<"Decode check 2"<<endl;
       RN = DE;
@@ -605,6 +632,7 @@ void Writeback()
 void Retire()
 {
   int canGo = 1;
+  int prev_age  = 0;
   cout<<"rob at retire: head "<<rob.head<<endl;
  // if((rob.head == 0)&&(rob.tail == 1)) rob.head = 1; //to handle initial condition
   for(int i = 0;i<ROB_size;i++)
@@ -622,6 +650,7 @@ void Retire()
      if((rob.rob_entry[k].rdy == 0)){ cout<<"breaking bad "<<rob.rob_entry[k].rdy<<endl; print_instr(rob.rob_entry[k].instr); break;} //&&(!(rob.head == 0)&&(rob.tail == 1))) break;
      if(rob.rob_entry[k].rdy == 1)
      {
+       if((rob.rob_entry[k].instr->age < prev_age)&&(prev_age !=0)) break;
       // rob.rob_entry[k].instr->retire_entry = cycle_count;
       // rob.rob_entry[k].valid = 0;
        cout<<"retired insruction "<<rob.rob_entry[k].instr->age<<" rob head "<<rob.head<<endl;
@@ -630,6 +659,7 @@ void Retire()
          if(rmt[i].tag == k) rmt[i].valid = 0;
        }
        rob.incr_head();
+       retire_age_cycle++;
        myfile<<rob.rob_entry[k].instr->age<<" "<<"fu{"<<rob.rob_entry[k].instr->opcode<<"} src{"<<rob.rob_entry[k].instr->sr1_org<<","<<rob.rob_entry[k].instr->sr2_org<<"} dst{"
          <<rob.rob_entry[k].instr->dr_org<<"} FE{"<<rob.rob_entry[k].instr->fetch_entry<<","
          <<(rob.rob_entry[k].instr->decode_entry - rob.rob_entry[k].instr->fetch_entry)
@@ -641,6 +671,7 @@ void Retire()
          <<rob.rob_entry[k].instr->execute_entry<<","<<(rob.rob_entry[k].instr->writeback_entry - rob.rob_entry[k].instr->execute_entry)<<"} WB{"
          <<rob.rob_entry[k].instr->writeback_entry<<","<<(rob.rob_entry[k].instr->retire_entry - rob.rob_entry[k].instr->writeback_entry)<<"} RT{"
          <<rob.rob_entry[k].instr->retire_entry<<","<<(cycle_count - rob.rob_entry[k].instr->retire_entry)<<"}"<<endl;
+       prev_age = rob.rob_entry[k].instr->age;
   
      }
     }
@@ -653,6 +684,7 @@ void Retire()
      if((rob.rob_entry[k].rdy == 0)){ cout<<"breaking bad "<<rob.rob_entry[k].rdy<<endl; print_instr(rob.rob_entry[k].instr);canGo = 0; break;} //&&(!(rob.head == 0)&&(rob.tail == 1))) break;
      if(rob.rob_entry[k].rdy == 1)
      {
+       if(rob.rob_entry[k].instr->age < prev_age) break;
       // rob.rob_entry[k].instr->retire_entry = cycle_count;
       // rob.rob_entry[k].valid = 0;
        cout<<"retired insruction "<<rob.rob_entry[k].instr->age<<" rob head "<<rob.head<<endl;
@@ -661,6 +693,7 @@ void Retire()
          if(rmt[i].tag == k) rmt[i].valid = 0;
        }
        rob.incr_head();
+       retire_age_cycle++;
        myfile<<rob.rob_entry[k].instr->age<<" "<<"fu{"<<rob.rob_entry[k].instr->opcode<<"} src{"<<rob.rob_entry[k].instr->sr1_org<<","<<rob.rob_entry[k].instr->sr2_org<<"} dst{"
          <<rob.rob_entry[k].instr->dr_org<<"} FE{"<<rob.rob_entry[k].instr->fetch_entry<<","
          <<(rob.rob_entry[k].instr->decode_entry - rob.rob_entry[k].instr->fetch_entry)
@@ -672,6 +705,7 @@ void Retire()
          <<rob.rob_entry[k].instr->execute_entry<<","<<(rob.rob_entry[k].instr->writeback_entry - rob.rob_entry[k].instr->execute_entry)<<"} WB{"
          <<rob.rob_entry[k].instr->writeback_entry<<","<<(rob.rob_entry[k].instr->retire_entry - rob.rob_entry[k].instr->writeback_entry)<<"} RT{"
          <<rob.rob_entry[k].instr->retire_entry<<","<<(cycle_count - rob.rob_entry[k].instr->retire_entry)<<"}"<<endl;
+       prev_age = rob.rob_entry[k].instr->age;
        }
     }
     if(canGo == 1)
@@ -682,6 +716,7 @@ void Retire()
      if((rob.rob_entry[k].rdy == 0)){ cout<<"breaking bad "<<rob.rob_entry[k].rdy<<endl; print_instr(rob.rob_entry[k].instr); break;} //&&(!(rob.head == 0)&&(rob.tail == 1))) break;
      if(rob.rob_entry[k].rdy == 1)
      {
+       if(rob.rob_entry[k].instr->age < prev_age) break;
       // rob.rob_entry[k].instr->retire_entry = cycle_count;
       // rob.rob_entry[k].valid = 0;
        cout<<"retired insruction "<<rob.rob_entry[k].instr->age<<" rob head "<<rob.head<<endl;
@@ -690,6 +725,7 @@ void Retire()
          if(rmt[i].tag == k) rmt[i].valid = 0;
        }
        rob.incr_head();
+       retire_age_cycle++;
        myfile<<rob.rob_entry[k].instr->age<<" "<<"fu{"<<rob.rob_entry[k].instr->opcode<<"} src{"<<rob.rob_entry[k].instr->sr1_org<<","<<rob.rob_entry[k].instr->sr2_org<<"} dst{"
          <<rob.rob_entry[k].instr->dr_org<<"} FE{"<<rob.rob_entry[k].instr->fetch_entry<<","
          <<(rob.rob_entry[k].instr->decode_entry - rob.rob_entry[k].instr->fetch_entry)
@@ -701,6 +737,7 @@ void Retire()
          <<rob.rob_entry[k].instr->execute_entry<<","<<(rob.rob_entry[k].instr->writeback_entry - rob.rob_entry[k].instr->execute_entry)<<"} WB{"
          <<rob.rob_entry[k].instr->writeback_entry<<","<<(rob.rob_entry[k].instr->retire_entry - rob.rob_entry[k].instr->writeback_entry)<<"} RT{"
          <<rob.rob_entry[k].instr->retire_entry<<","<<(cycle_count - rob.rob_entry[k].instr->retire_entry)<<"}"<<endl;
+       prev_age = rob.rob_entry[k].instr->age;
        }
     }
     }

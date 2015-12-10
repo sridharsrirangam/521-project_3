@@ -17,6 +17,7 @@ class instruction{
     int age;
     int rdy_rs1, rdy_rs2;
     int rob_tag;
+    bool lastInstr;
     
     //variables to log entry and exit times
     int fetch_entry;
@@ -51,6 +52,7 @@ class instruction{
       execute_entry = 0;
       writeback_entry = 0;
       retire_entry = 0;
+      lastInstr = 0;
     }
 
 };

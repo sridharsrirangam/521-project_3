@@ -19,6 +19,11 @@ int go_WB = 0; //set by execute
 int go_RT = 1;
 bool go_issue = 0;
 
+//values for identifying last few instructions in trace tha are less than width
+//bool lastInstr = 0;
+//int numInstr = 0;
+
+
 unsigned int ROB_size;
 unsigned int IQ_size;
 unsigned int width;
@@ -182,7 +187,7 @@ void print_instr(instruction *instr)
   {
   cout<<" PC: "<<hex<<instr->pc<<dec<<" opcode :"<<instr->opcode<<" dr: "<<instr->dr_org<<" dr rn: "<<instr->dr<<" sr1: "<<instr->sr1_org
     <<" sr1 rn: "<<instr->sr1<<" sr2: "<<instr->sr2_org<<" sr2 rn: "<<instr->sr2<<" rdy sr1: "<<instr->rdy_rs1
-    <<" rdy sr2: "<<instr->rdy_rs2<<" rob_or arf sr1: "<<instr->sr1_rob_or_arf<<" rob_or arf sr2: "<<instr->sr2_rob_or_arf<<" rob tag "<<instr->rob_tag<<" age: "<<instr->age<<endl;
+    <<" rdy sr2: "<<instr->rdy_rs2<<" rob_or arf sr1: "<<instr->sr1_rob_or_arf<<" rob_or arf sr2: "<<instr->sr2_rob_or_arf<<" rob tag "<<instr->rob_tag<<" age: "<<instr->age<<" lastInstr: "<<instr->lastInstr<<endl;
 cout<<" fetch entry "<<instr->fetch_entry<<" decode entry "<<instr->decode_entry<<" rename entry "<<instr->rename_entry<<" regread entry "<<instr->regread_entry<<" dispatch entry "<<instr->dispatch_entry<<" issue entry "<<instr->issue_entry<< " execute entry "<<instr->execute_entry<<" writeback entry "<<instr->writeback_entry<<" retire entry "<<instr->retire_entry<<endl;
 }
 }
@@ -204,7 +209,19 @@ void Fetch()
    for(int i=0;i<width;i++)
    {
     fscanf(pFile,"%s %d %d %d %d",&pc_str,&opcode,&dr,&sr1,&sr2);
-    if(feof(pFile)) { DE_empty= 1; DE = NULL; break;}
+    if(feof(pFile)) 
+    { 
+      cout<<"end inter "<<i<<endl; 
+      DE_empty= 1;
+      if(i !=0)
+      {
+        i_b[i-1].lastInstr = 1;
+        print_instr(&i_b[i-1]);
+      }
+     // numInstr = i;
+      /* DE = NULL;*/ 
+      break;
+    }
     i_b[i].pc = strtoul(pc_str,0,16);
     i_b[i].opcode = opcode;
     i_b[i].dr = dr;
@@ -217,7 +234,7 @@ void Fetch()
     i_b[i].rdy_rs1 = 0;
     i_b[i].rdy_rs2 = 0;
     fetch_age_cycle++;
-    fetchfile<<" instruction "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<i_b[i].opcode<<" "<<i_b[i].dr<<" "<<i_b[i].sr1_org<<" "<<i_b[i].sr2_org<<" age "<<i_b[i].age<<endl;
+    fetchfile<<" instruction "<<i<<" "<<hex<<i_b[i].pc<<dec<<" "<<i_b[i].opcode<<" "<<i_b[i].dr<<" "<<i_b[i].sr1_org<<" "<<i_b[i].sr2_org<<" age "<<i_b[i].age<<" last instr: "<<i_b[i].lastInstr<<endl;
     DE = i_b;
     i_b[i].fetch_entry = cycle_count-1;
     i_b[i].decode_entry = cycle_count;
@@ -239,7 +256,7 @@ void Decode()//maybe send bundle pointer to decode from fetch
     {
       //fetchfile<<"ready states at decode"<<DE_empty<<" "<<RN_empty<<" "<<RR_empty<<" "<<DI_empty<<endl;
       for(int i =0;i<width;i++) { DE[i].rename_entry = cycle_count;} 
-     // for(int i=0;i<width;i++) fetchfile<<" instruction "<<i<<" "<<hex<<DE[i].pc<<dec<<" "<<DE[i].opcode<<" "<<DE[i].dr<<" "<<DE[i].sr1_org<<" "<<DE[i].sr2_org<<" age "<<DE[i].age<<endl;
+      for(int i=0;i<width;i++) fetchfile<<"decode  instruction "<<i<<" "<<hex<<DE[i].pc<<dec<<" "<<DE[i].opcode<<" "<<DE[i].dr<<" "<<DE[i].sr1_org<<" "<<DE[i].sr2_org<<" age "<<DE[i].age<<endl;
       DE_empty = 0;
       //cout<<"Decode check 2"<<endl;
       RN = DE;
@@ -372,13 +389,27 @@ void RegRead()
 
 void Dispatch()
 {
+  int width_d = width;
   if(DI != NULL)
   {
-    if(IQ->is_IQ_empty() >= width) // 1 if there is place
+    int Icount  = -1;
+    bool Ilast = 0; 
+    for(int i=0;i<width;i++)
+    {
+      if(DI[i].lastInstr == 1)
+      {
+        Icount = i+1;
+        cout<<"icount "<<Icount<<endl;
+        Ilast = 1;
+        width_d = Icount;
+        break;
+      }
+    }
+    if((IQ->is_IQ_empty() >= width)||((Ilast == 1)&&(IQ->is_IQ_empty() >= Icount)))  // 1 if there is place
     {
       cout<<"Dispatch check"<<endl;
       DI_empty = 0;
-      for(int i=0;i<width;i++)
+      for(int i=0;i<width_d;i++)
       {
         int free_entry = IQ->free_entry(); //TODO write a funcion to return an empty place in issue queue
         //cout<<"free entry "<<free_entry<<endl;
